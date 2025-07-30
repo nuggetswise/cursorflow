@@ -1,0 +1,53 @@
+{
+  "name": "cursorflow-monorepo",
+  "version": "1.0.0",
+  "description": "CursorFlow - PRD-to-Code platform combining Cursor IDE with v0 Platform API",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd frontend && npm run test",
+    "test:backend": "cd backend && npm run test",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "cd frontend && npm run lint",
+    "lint:backend": "cd backend && npm run lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install && cd ../shared && npm install",
+    "clean": "rm -rf node_modules frontend/node_modules backend/node_modules shared/node_modules",
+    "setup": "npm run install:all && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.1.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/cursorflow.git"
+  },
+  "keywords": [
+    "cursorflow",
+    "prd-to-code",
+    "ai",
+    "product-management",
+    "cursor-ide",
+    "v0-platform"
+  ],
+  "author": "CursorFlow Team",
+  "license": "MIT"
+} 
