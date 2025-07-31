@@ -1,0 +1,47 @@
+{
+  "system": "You are an Intent-Analysis agent for a no-code product builder. Your job is to analyze user ideas and extract the core product requirements. Focus on understanding the high-level goal, main user roles, core features, and any constraints. Be concise and practical. Return strict JSON format only.",
+  "user": "{ \"idea\": \"{{idea}}\" }",
+  "output_schema": {
+    "goal": "string",
+    "userRoles": ["string"],
+    "coreFeatures": [
+      {
+        "name": "string",
+        "description": "string",
+        "priority": "high|medium|low"
+      }
+    ],
+    "constraints": ["string"],
+    "platform": "web|mobile|desktop",
+    "complexity": "simple|moderate|complex"
+  },
+  "examples": [
+    {
+      "input": "Job tracker app with dark mode and drag-and-drop",
+      "output": {
+        "goal": "Create a job application tracking system with modern UI",
+        "userRoles": ["job seeker", "recruiter"],
+        "coreFeatures": [
+          {
+            "name": "Job List Management",
+            "description": "Add, edit, and organize job applications",
+            "priority": "high"
+          },
+          {
+            "name": "Dark Mode Toggle",
+            "description": "Switch between light and dark themes",
+            "priority": "medium"
+          },
+          {
+            "name": "Drag and Drop Interface",
+            "description": "Reorder jobs by dragging between status columns",
+            "priority": "high"
+          }
+        ],
+        "constraints": ["web-based", "responsive design"],
+        "platform": "web",
+        "complexity": "moderate"
+      }
+    }
+  ]
+} 

@@ -1,175 +1,209 @@
-# 🤖 AI Prompts Directory
+# CursorFlow Prompts - Hybrid Platform
 
-This directory contains structured AI prompts for generating various components of the CursorFlow platform using our transparent AI system.
+## 🎯 **Overview**
 
-## 📁 Directory Structure
-
-```
-prompts/
-├── README.md                           # This file
-├── frontend-generation/                # Frontend generation prompts
-│   ├── cursor-website-prompt.md       # Cursor IDE website frontend
-│   └── cursorflow-webapp-prompt.md    # CursorFlow web app frontend
-├── prd-generation/                     # PRD generation prompts
-├── design-critique/                    # Design analysis prompts
-├── code-analysis/                      # Code review prompts
-└── business-analysis/                  # Business strategy prompts
-```
-
-## 🎯 Purpose
-
-These prompts are designed to work with our **Transparent AI System** to generate:
-
-1. **Frontend Applications**: Complete Next.js applications with TypeScript and Tailwind CSS
-2. **Product Requirements Documents**: Comprehensive PRDs with transparent reasoning
-3. **Design Analysis**: AI-powered UX and design critique reports
-4. **Code Analysis**: Automated code review and optimization suggestions
-5. **Business Strategy**: Market analysis and business planning documents
-
-## 🔧 How to Use
-
-### **For Frontend Generation**
-
-1. **Select the appropriate prompt** from the `frontend-generation/` directory
-2. **Configure the AI system** with the prompt parameters
-3. **Generate the frontend** using our transparent AI engine
-4. **Review the reasoning** behind design and technical decisions
-5. **Customize and deploy** the generated application
-
-### **Example Usage**
-
-```typescript
-// Using our TransparentPromptEngine
-const promptEngine = new TransparentPromptEngine();
-
-const frontendConfig = {
-  task: 'frontend-generation',
-  stakeholder: 'product-manager',
-  context: {
-    project: 'cursorflow-marketing',
-    requirements: 'modern, professional, PM-focused'
-  },
-  data: {
-    brandGuidelines: {...},
-    technicalRequirements: {...},
-    pageStructure: {...}
-  },
-  explainabilityLevel: 'detailed'
-};
-
-const result = await promptEngine.generateTransparentPrompt(frontendConfig);
-```
-
-## 📋 Prompt Categories
-
-### **Frontend Generation**
-- **cursorflow-marketing-prompt.md**: Generate the CursorFlow marketing website (PM-focused)
-- **cursorflow-webapp-prompt.md**: Generate the CursorFlow web application
-
-### **PRD Generation** (Coming Soon)
-- **product-manager-prompt.md**: Generate PRDs from product manager perspective
-- **startup-founder-prompt.md**: Generate PRDs for startup validation
-- **enterprise-prompt.md**: Generate PRDs for enterprise projects
-
-### **Design Critique** (Coming Soon)
-- **ux-analysis-prompt.md**: Analyze user experience and design
-- **accessibility-prompt.md**: Check accessibility compliance
-- **performance-prompt.md**: Analyze performance and optimization
-
-### **Code Analysis** (Coming Soon)
-- **code-review-prompt.md**: Automated code review and suggestions
-- **security-audit-prompt.md**: Security vulnerability analysis
-- **performance-optimization-prompt.md**: Code performance optimization
-
-## 🎨 Prompt Structure
-
-Each prompt follows a consistent structure:
-
-1. **Objective**: Clear goal and purpose
-2. **Context & Requirements**: Product overview and target audience
-3. **Technical Requirements**: Framework, stack, and performance specs
-4. **Features & Structure**: Detailed feature specifications
-5. **Design Specifications**: UI/UX requirements and components
-6. **Technical Implementation**: Architecture and integration details
-7. **AI Generation Instructions**: Specific guidance for AI systems
-8. **Success Criteria**: Measurable outcomes and quality standards
-
-## 🔍 Transparent AI Features
-
-All prompts are designed to work with our transparent AI system, providing:
-
-- **Explainable Reasoning**: Clear explanations for all AI decisions
-- **Confidence Scoring**: Transparent confidence levels for recommendations
-- **Alternative Suggestions**: Multiple approaches with trade-off analysis
-- **Evidence-Based Insights**: Data-backed recommendations with sources
-- **Step-by-Step Process**: Detailed reasoning for each generation step
-
-## 📊 Quality Standards
-
-### **Frontend Generation**
-- **Performance**: <2 second load times
-- **Accessibility**: WCAG 2.1 AA compliance
-- **Responsiveness**: Mobile-first design
-- **SEO**: Fully optimized for search engines
-- **Code Quality**: TypeScript best practices
-- **Documentation**: Comprehensive component documentation
-
-### **PRD Generation**
-- **Completeness**: All essential PRD sections included
-- **Clarity**: Clear, actionable requirements
-- **Stakeholder Focus**: Role-based insights and recommendations
-- **Technical Depth**: Appropriate technical specifications
-- **Business Alignment**: Clear business objectives and metrics
-
-## 🚀 Best Practices
-
-### **When Using These Prompts**
-
-1. **Review Requirements**: Ensure all requirements are clearly specified
-2. **Validate Output**: Always review AI-generated content for accuracy
-3. **Customize Results**: Adapt generated content to specific project needs
-4. **Iterate**: Use feedback to improve prompt effectiveness
-5. **Document Changes**: Track prompt modifications and improvements
-
-### **Prompt Maintenance**
-
-1. **Regular Updates**: Keep prompts current with latest technologies
-2. **Version Control**: Track prompt versions and changes
-3. **Performance Monitoring**: Measure prompt effectiveness and success rates
-4. **User Feedback**: Incorporate user feedback to improve prompts
-5. **Testing**: Regularly test prompts with different scenarios
-
-## 📈 Success Metrics
-
-### **Frontend Generation**
-- **Generation Time**: <5 minutes for complete application
-- **Code Quality**: 95%+ TypeScript compliance
-- **Performance**: <2s load times achieved
-- **User Satisfaction**: 4.5+ star rating
-- **Deployment Success**: 90%+ successful deployments
-
-### **PRD Generation**
-- **Completeness**: 100% of required sections included
-- **Stakeholder Satisfaction**: 90%+ approval rate
-- **Technical Accuracy**: 95%+ technical specifications correct
-- **Business Alignment**: Clear business objectives defined
-- **Actionability**: 100% actionable requirements
-
-## 🔄 Continuous Improvement
-
-### **Feedback Loop**
-1. **Collect Feedback**: Gather user feedback on generated content
-2. **Analyze Performance**: Review success metrics and failure points
-3. **Update Prompts**: Refine prompts based on feedback and analysis
-4. **Test Improvements**: Validate prompt improvements with testing
-5. **Deploy Updates**: Roll out improved prompts to production
-
-### **Version Control**
-- **Prompt Versioning**: Track prompt versions and changes
-- **Change Documentation**: Document all prompt modifications
-- **Rollback Capability**: Ability to revert to previous prompt versions
-- **A/B Testing**: Test different prompt versions for effectiveness
+This directory contains AI prompts for the CursorFlow hybrid platform, supporting both **Quick Build Mode** (Nuggetwise Builder) and **Full Platform Mode** (Comprehensive PRD-to-Code workflow).
 
 ---
 
-**📝 This directory represents our commitment to transparent, high-quality AI generation with clear reasoning and actionable outputs!** 
+## **🏗️ Directory Structure**
+
+```
+prompts/
+├── README.md                    # This file
+├── nuggetwise/                  # Quick Build Mode prompts
+│   ├── intent-analysis.json     # User intent understanding
+│   ├── ux-pattern-selector.json # UI pattern selection
+│   ├── validation.json          # Feasibility validation
+│   ├── ui-requirement-synthesizer.json # Component specs
+│   ├── v0-prompt-builder.txt    # v0.dev optimization
+│   ├── diff-detector.json       # Change analysis
+│   └── notification.json        # Slack notifications
+├── frontend-generation/         # Full Platform Mode
+│   ├── cursorflow-webapp-prompt.md    # CursorFlow web app
+│   └── cursorflow-marketing-prompt.md # Marketing site
+├── prd-generation/              # Full Platform Mode
+│   └── product-manager-prompt.md      # Comprehensive PRDs
+├── design-critique/             # Full Platform Mode
+│   └── ux-designer-prompt.md          # Design analysis
+└── code-analysis/               # Full Platform Mode
+    └── software-architect-prompt.md   # Code architecture
+```
+
+---
+
+## **🚀 Quick Build Mode (Nuggetwise Builder)**
+
+### **Purpose**
+Generate React/Tailwind frontends in under 30 seconds using a 7-agent orchestration system.
+
+### **Use Cases**
+- Rapid prototyping
+- Simple UI generation
+- Quick concept validation
+- Single-page applications
+
+### **Workflow**
+1. **Intent Analysis** → Understand user goals
+2. **UX Pattern Selection** → Choose UI patterns
+3. **Validation** → Assess feasibility
+4. **UI Requirement Synthesis** → Create component specs
+5. **v0 Prompt Building** → Optimize for v0.dev
+6. **Diff Detection** → Identify changes
+7. **Notification** → Send updates
+
+### **Commands**
+```bash
+/nw build "Job tracker with dark mode"
+/nw update "Add user authentication"
+/nw pull "Get latest designs"
+```
+
+---
+
+## **🏢 Full Platform Mode (CursorFlow Platform)**
+
+### **Purpose**
+Comprehensive PRD-to-production workflow with enterprise features.
+
+### **Use Cases**
+- Full-stack applications
+- Enterprise development
+- Team collaboration
+- Production deployments
+
+### **Components**
+
+#### **Frontend Generation**
+- **`cursorflow-webapp-prompt.md`**: Generate the CursorFlow web application
+- **`cursorflow-marketing-prompt.md`**: Generate marketing websites
+
+#### **PRD Generation**
+- **`product-manager-prompt.md`**: Comprehensive product requirements documents
+
+#### **Design Analysis**
+- **`ux-designer-prompt.md`**: UX/UI design critique and optimization
+
+#### **Code Analysis**
+- **`software-architect-prompt.md`**: Code architecture and quality assessment
+
+---
+
+## **🔄 Mode Selection**
+
+### **Quick Build Mode** (Recommended for)
+- ✅ Simple UI components
+- ✅ Single-page applications
+- ✅ Rapid prototyping
+- ✅ Concept validation
+- ✅ Non-technical users
+
+### **Full Platform Mode** (Recommended for)
+- ✅ Complex applications
+- ✅ Full-stack development
+- ✅ Team collaboration
+- ✅ Enterprise features
+- ✅ Production deployments
+
+### **Seamless Upgrades**
+Users can start with Quick Build and seamlessly upgrade to Full Platform as their needs grow.
+
+---
+
+## **📋 Prompt Specifications**
+
+### **Quick Build Prompts (JSON Format)**
+- **Structured**: JSON schema validation
+- **Optimized**: For v0.dev integration
+- **Fast**: Streamlined for speed
+- **Modular**: Work together in sequence
+
+### **Full Platform Prompts (Markdown Format)**
+- **Comprehensive**: Detailed analysis
+- **Flexible**: Adaptable to various use cases
+- **Professional**: Enterprise-grade quality
+- **Standalone**: Can be used independently
+
+---
+
+## **🔧 Integration Points**
+
+### **v0 Platform Integration**
+Based on [v0.dev Cursor documentation](https://v0.dev/docs/cursor):
+- **API Endpoint**: `https://api.v0.dev/v1`
+- **Model**: `v0-1.0-md`
+- **Authentication**: API key in headers
+- **Response Format**: JSON with component data
+
+### **Cursor IDE Integration**
+- **MCP Protocol**: Model Context Protocol for tool integration
+- **Slash Commands**: `/nw build`, `/nw update`, `/nw pull`
+- **File System Access**: Direct workspace manipulation
+- **Real-time Updates**: Live preview and notifications
+
+---
+
+## **📊 Usage Examples**
+
+### **Quick Build Example**
+```bash
+# User types in Cursor
+/nw build "E-commerce product page with reviews and add to cart"
+
+# System processes through 7 agents
+1. Intent Analysis: "E-commerce product page"
+2. UX Pattern: "Product card, review section, cart button"
+3. Validation: "Feasible, moderate complexity"
+4. UI Requirements: "ProductCard, ReviewSection, AddToCartButton"
+5. v0 Prompt: "Generate React components with Tailwind..."
+6. Diff Detection: "New components needed"
+7. Notification: "Build completed! 3 components generated"
+```
+
+### **Full Platform Example**
+```bash
+# User creates PRD
+1. Product Manager Prompt: "Generate comprehensive PRD for e-commerce platform"
+2. Frontend Generation: "Create full e-commerce web application"
+3. Design Critique: "Analyze UX and suggest improvements"
+4. Code Analysis: "Review architecture and performance"
+```
+
+---
+
+## **🎯 Success Metrics**
+
+### **Quick Build Mode**
+- **Speed**: <30 seconds generation time
+- **Success Rate**: >95% successful builds
+- **User Satisfaction**: >4.5/5 rating
+- **Cost Efficiency**: <$2 per build
+
+### **Full Platform Mode**
+- **Quality**: >90% of generated code passes review
+- **Completeness**: Comprehensive PRD-to-production workflow
+- **Enterprise Ready**: Security, compliance, collaboration
+- **Scalability**: Handles complex applications
+
+---
+
+## **🔗 Related Documentation**
+
+- [Hybrid Architecture](../implementation-plan/HYBRID_ARCHITECTURE.md)
+- [Nuggetwise Builder](../implementation-plan/NUGGETWISE_BUILDER.md)
+- [Implementation Checklist](../implementation-plan/HYBRID_IMPLEMENTATION_CHECKLIST.md)
+- [API Specifications](../implementation-plan/API_SPECS.md)
+
+---
+
+## **📞 Support**
+
+For questions about prompt usage or customization:
+- Check the implementation plan documentation
+- Review the hybrid architecture guide
+- Test prompts with sample inputs
+- Validate JSON schemas for Quick Build prompts
+
+---
+
+*This prompt structure supports both rapid prototyping and enterprise development, providing a clear path for user growth and platform adoption.* 

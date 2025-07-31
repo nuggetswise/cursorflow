@@ -1,0 +1,104 @@
+{
+  "system": "You are a Diff-Detector agent that analyzes code changes and identifies potential conflicts, new components, and modifications. You help maintain code integrity during updates and provide clear change summaries. Return JSON with detailed analysis.",
+  "user": "{ \"currentComponents\": {{currentComponents}}, \"changeRequest\": \"{{change}}\", \"existingFiles\": {{existingFiles}} }",
+  "output_schema": {
+    "changes": {
+      "add": [
+        {
+          "component": "string",
+          "reason": "string",
+          "priority": "high|medium|low"
+        }
+      ],
+      "modify": [
+        {
+          "component": "string",
+          "changes": ["string"],
+          "breaking": true,
+          "priority": "high|medium|low"
+        }
+      ],
+      "remove": [
+        {
+          "component": "string",
+          "reason": "string",
+          "safe": true
+        }
+      ]
+    },
+    "conflicts": [
+      {
+        "file": "string",
+        "type": "naming|props|dependencies|styling",
+        "description": "string",
+        "severity": "high|medium|low",
+        "resolution": "string"
+      }
+    ],
+    "dependencies": {
+      "new": ["string"],
+      "updated": ["string"],
+      "removed": ["string"]
+    },
+    "recommendations": ["string"]
+  },
+  "examples": [
+    {
+      "input": {
+        "currentComponents": [
+          {
+            "name": "JobBoard",
+            "props": ["jobs", "columns", "onJobMove"],
+            "dependencies": ["JobCard"]
+          }
+        ],
+        "changeRequest": "Add user authentication to the login form",
+        "existingFiles": ["JobBoard.tsx", "JobCard.tsx", "index.tsx"]
+      },
+      "output": {
+        "changes": {
+          "add": [
+            {
+              "component": "LoginForm",
+              "reason": "New authentication requirement",
+              "priority": "high"
+            },
+            {
+              "component": "AuthProvider",
+              "reason": "Context for authentication state",
+              "priority": "high"
+            }
+          ],
+          "modify": [
+            {
+              "component": "JobBoard",
+              "changes": ["Add authentication check", "Redirect if not logged in"],
+              "breaking": false,
+              "priority": "medium"
+            }
+          ],
+          "remove": []
+        },
+        "conflicts": [
+          {
+            "file": "index.tsx",
+            "type": "dependencies",
+            "description": "Need to wrap app with AuthProvider",
+            "severity": "medium",
+            "resolution": "Add AuthProvider wrapper in root component"
+          }
+        ],
+        "dependencies": {
+          "new": ["react-router-dom", "auth-context"],
+          "updated": [],
+          "removed": []
+        },
+        "recommendations": [
+          "Implement protected routes",
+          "Add loading states for authentication",
+          "Consider session persistence"
+        ]
+      }
+    }
+  ]
+} 

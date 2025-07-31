@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createAuditService, AuditRequest, LLMProvider } from '../../../../services/audit.service';
 
 // Validation schemas
 const AuditRequestSchema = z.object({

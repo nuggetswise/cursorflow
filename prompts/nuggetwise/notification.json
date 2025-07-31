@@ -1,0 +1,113 @@
+{
+  "system": "You are a concise Slack copywriter for Nuggetwise Builder. Turn build events into engaging, informative notifications that keep teams updated on project progress. Keep messages under 240 characters and include relevant emojis and links.",
+  "user": "{ \"event\": \"{{event}}\", \"details\": {{details}}, \"user\": \"{{user}}\", \"project\": \"{{project}}\" }",
+  "output_schema": {
+    "message": "string",
+    "channel": "string",
+    "attachments": [
+      {
+        "type": "string",
+        "content": "string",
+        "url": "string"
+      }
+    ],
+    "priority": "high|medium|low"
+  },
+  "event_types": {
+    "build_completed": {
+      "template": "🎉 Build completed for {{project}}! {{components}} components generated in {{time}}s",
+      "emoji": "🎉",
+      "channel": "#nuggetwise-builds"
+    },
+    "build_failed": {
+      "template": "❌ Build failed for {{project}}: {{error}}",
+      "emoji": "❌",
+      "channel": "#nuggetwise-alerts"
+    },
+    "update_completed": {
+      "template": "🔄 Update completed for {{project}}: {{changes}}",
+      "emoji": "🔄",
+      "channel": "#nuggetwise-updates"
+    },
+    "budget_warning": {
+      "template": "⚠️ Budget warning: {{user}} has used {{percentage}}% of weekly budget",
+      "emoji": "⚠️",
+      "channel": "#nuggetwise-alerts"
+    },
+    "cost_exceeded": {
+      "template": "🚨 Budget exceeded: {{user}} has reached weekly limit",
+      "emoji": "🚨",
+      "channel": "#nuggetwise-alerts"
+    }
+  },
+  "examples": [
+    {
+      "input": {
+        "event": "build_completed",
+        "details": {
+          "project": "Job Tracker",
+          "components": 5,
+          "time": 28,
+          "preview": "https://v0-abc123.vercel.app"
+        },
+        "user": "john.doe",
+        "project": "job-tracker-app"
+      },
+      "output": {
+        "message": "🎉 Build completed for Job Tracker! 5 components generated in 28s. Preview: https://v0-abc123.vercel.app",
+        "channel": "#nuggetwise-builds",
+        "attachments": [
+          {
+            "type": "preview",
+            "content": "Job Tracker App",
+            "url": "https://v0-abc123.vercel.app"
+          }
+        ],
+        "priority": "medium"
+      }
+    },
+    {
+      "input": {
+        "event": "build_failed",
+        "details": {
+          "project": "E-commerce Site",
+          "error": "Invalid component specification",
+          "suggestion": "Check component props"
+        },
+        "user": "jane.smith",
+        "project": "ecommerce-site"
+      },
+      "output": {
+        "message": "❌ Build failed for E-commerce Site: Invalid component specification. Check component props.",
+        "channel": "#nuggetwise-alerts",
+        "attachments": [
+          {
+            "type": "suggestion",
+            "content": "Check component props",
+            "url": ""
+          }
+        ],
+        "priority": "high"
+      }
+    },
+    {
+      "input": {
+        "event": "budget_warning",
+        "details": {
+          "user": "alice.wong",
+          "percentage": 85,
+          "weeklyBudget": 50,
+          "currentSpend": 42.50
+        },
+        "user": "alice.wong",
+        "project": "dashboard-app"
+      },
+      "output": {
+        "message": "⚠️ Budget warning: alice.wong has used 85% of weekly budget ($42.50/$50.00)",
+        "channel": "#nuggetwise-alerts",
+        "attachments": [],
+        "priority": "medium"
+      }
+    }
+  ]
+} 

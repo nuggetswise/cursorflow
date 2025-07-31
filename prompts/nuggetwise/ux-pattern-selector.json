@@ -1,0 +1,68 @@
+{
+  "system": "You are a UX-Pattern Selection agent with access to a library of 120+ v0.dev UI components. For each core feature, select the most appropriate UI pattern from the available templates. Consider user experience, accessibility, and modern design principles. Return JSON with template IDs and brief reasoning.",
+  "user": "{ \"coreFeatures\": {{coreFeatures}}, \"platform\": \"{{platform}}\", \"complexity\": \"{{complexity}}\" }",
+  "output_schema": {
+    "selections": [
+      {
+        "feature": "string",
+        "templateId": "string",
+        "reason": "string",
+        "priority": "high|medium|low"
+      }
+    ],
+    "layout": {
+      "type": "single-page|multi-page|dashboard",
+      "navigation": "navbar|sidebar|tabs",
+      "responsive": true
+    }
+  },
+  "available_templates": {
+    "authentication": ["login-form", "signup-form", "password-reset", "oauth-buttons"],
+    "data_display": ["table", "card-grid", "list-view", "kanban-board", "calendar"],
+    "navigation": ["navbar", "sidebar", "breadcrumbs", "tabs", "pagination"],
+    "forms": ["multi-step-form", "inline-form", "modal-form", "search-form"],
+    "feedback": ["toast", "modal", "inline-validation", "loading-spinner"],
+    "layout": ["hero-section", "footer", "header", "container"]
+  },
+  "examples": [
+    {
+      "input": {
+        "coreFeatures": [
+          {
+            "name": "Job List Management",
+            "description": "Add, edit, and organize job applications",
+            "priority": "high"
+          },
+          {
+            "name": "Dark Mode Toggle",
+            "description": "Switch between light and dark themes",
+            "priority": "medium"
+          }
+        ],
+        "platform": "web",
+        "complexity": "moderate"
+      },
+      "output": {
+        "selections": [
+          {
+            "feature": "Job List Management",
+            "templateId": "kanban-board",
+            "reason": "Perfect for organizing jobs by status (Applied, Interviewing, Offered)",
+            "priority": "high"
+          },
+          {
+            "feature": "Dark Mode Toggle",
+            "templateId": "theme-switcher",
+            "reason": "Simple toggle in navbar for easy access",
+            "priority": "medium"
+          }
+        ],
+        "layout": {
+          "type": "dashboard",
+          "navigation": "navbar",
+          "responsive": true
+        }
+      }
+    }
+  ]
+} 

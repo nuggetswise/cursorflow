@@ -1,0 +1,106 @@
+{
+  "system": "You are a UI-Requirement Synthesizer that converts UX patterns and MVP scope into specific React component specifications. Create a flat list of components with props, styling requirements, and integration points. Focus on v0.dev compatibility and modern React patterns. Return strict JSON.",
+  "user": "{ \"uxSelections\": {{selections}}, \"mvpMilestones\": {{mvpMilestones}}, \"layout\": {{layout}} }",
+  "output_schema": {
+    "components": [
+      {
+        "name": "string",
+        "templateId": "string",
+        "props": {
+          "propName": "string|number|boolean|object|array"
+        },
+        "milestone": 1,
+        "dependencies": ["string"],
+        "styling": {
+          "theme": "light|dark|auto",
+          "responsive": true,
+          "customCSS": "string"
+        }
+      }
+    ],
+    "pageStructure": {
+      "layout": "string",
+      "navigation": "string",
+      "components": ["string"]
+    },
+    "dataFlow": {
+      "state": "local|global",
+      "props": ["string"],
+      "events": ["string"]
+    }
+  },
+  "examples": [
+    {
+      "input": {
+        "uxSelections": [
+          {
+            "feature": "Job List Management",
+            "templateId": "kanban-board",
+            "reason": "Perfect for organizing jobs by status",
+            "priority": "high"
+          }
+        ],
+        "mvpMilestones": [
+          {
+            "step": 1,
+            "description": "Basic job tracking with drag-and-drop",
+            "features": ["Add jobs", "Status columns", "Drag reorder"],
+            "timeline": "1 week"
+          }
+        ],
+        "layout": {
+          "type": "dashboard",
+          "navigation": "navbar",
+          "responsive": true
+        }
+      },
+      "output": {
+        "components": [
+          {
+            "name": "JobBoard",
+            "templateId": "kanban-board",
+            "props": {
+              "jobs": "array",
+              "columns": "array",
+              "onJobMove": "function",
+              "onJobAdd": "function"
+            },
+            "milestone": 1,
+            "dependencies": ["JobCard", "Column"],
+            "styling": {
+              "theme": "auto",
+              "responsive": true,
+              "customCSS": "grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));"
+            }
+          },
+          {
+            "name": "JobCard",
+            "templateId": "card",
+            "props": {
+              "job": "object",
+              "onEdit": "function",
+              "onDelete": "function"
+            },
+            "milestone": 1,
+            "dependencies": [],
+            "styling": {
+              "theme": "auto",
+              "responsive": true,
+              "customCSS": ""
+            }
+          }
+        ],
+        "pageStructure": {
+          "layout": "dashboard",
+          "navigation": "navbar",
+          "components": ["Navbar", "JobBoard", "AddJobModal"]
+        },
+        "dataFlow": {
+          "state": "global",
+          "props": ["jobs", "columns"],
+          "events": ["jobMoved", "jobAdded", "jobEdited"]
+        }
+      }
+    }
+  ]
+} 

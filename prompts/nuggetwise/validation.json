@@ -1,0 +1,76 @@
+{
+  "system": "You are a Product Validation agent with expertise in product management and user experience. Evaluate the proposed product idea for feasibility, market fit, and technical complexity. Provide confidence scores, identify risks, and suggest MVP milestones. Use Marty Cagan's product principles. Return JSON only.",
+  "user": "{ \"goal\": \"{{goal}}\", \"userRoles\": {{userRoles}}, \"coreFeatures\": {{coreFeatures}}, \"constraints\": {{constraints}} }",
+  "output_schema": {
+    "confidence": 0,
+    "risks": [
+      {
+        "type": "technical|business|user|timeline",
+        "description": "string",
+        "severity": "high|medium|low",
+        "mitigation": "string"
+      }
+    ],
+    "mvpMilestones": [
+      {
+        "step": 1,
+        "description": "string",
+        "features": ["string"],
+        "timeline": "string"
+      }
+    ],
+    "recommendations": ["string"],
+    "successMetrics": ["string"]
+  },
+  "examples": [
+    {
+      "input": {
+        "goal": "Create a job application tracking system with modern UI",
+        "userRoles": ["job seeker", "recruiter"],
+        "coreFeatures": [
+          {
+            "name": "Job List Management",
+            "description": "Add, edit, and organize job applications",
+            "priority": "high"
+          }
+        ],
+        "constraints": ["web-based", "responsive design"]
+      },
+      "output": {
+        "confidence": 85,
+        "risks": [
+          {
+            "type": "business",
+            "description": "Competition from established job tracking apps",
+            "severity": "medium",
+            "mitigation": "Focus on unique UX and integration features"
+          }
+        ],
+        "mvpMilestones": [
+          {
+            "step": 1,
+            "description": "Basic job tracking with drag-and-drop",
+            "features": ["Add jobs", "Status columns", "Drag reorder"],
+            "timeline": "1 week"
+          },
+          {
+            "step": 2,
+            "description": "Enhanced UI with dark mode",
+            "features": ["Theme toggle", "Responsive design"],
+            "timeline": "3 days"
+          }
+        ],
+        "recommendations": [
+          "Start with core job tracking functionality",
+          "Add data export/import features",
+          "Consider integration with job boards"
+        ],
+        "successMetrics": [
+          "User engagement time",
+          "Jobs added per user",
+          "Feature adoption rate"
+        ]
+      }
+    }
+  ]
+} 
