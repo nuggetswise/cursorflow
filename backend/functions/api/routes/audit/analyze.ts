@@ -76,108 +76,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = AuditRequestSchema.parse(body);
 
-    // TODO: Implement actual audit logic
-    // This would involve:
-    // 1. Fetching the URL content
-    // 2. Running performance analysis
-    // 3. Running accessibility checks
-    // 4. Analyzing copy and UX
-    // 5. Generating AI-powered insights
-
-    // Mock audit response for now
-    const auditResponse: AuditResponse = {
-      audit: {
-        headlineGrade: 7,
-        frictionPoints: [
-          {
-            type: 'ux',
-            severity: 'medium',
-            description: 'Call-to-action button lacks sufficient contrast',
-            location: 'hero-section',
-            suggestion: 'Increase button contrast ratio to meet WCAG AA standards'
-          },
-          {
-            type: 'copy',
-            severity: 'low',
-            description: 'Headline could be more compelling',
-            location: 'hero-headline',
-            suggestion: 'Use action-oriented language and highlight key benefits'
-          }
-        ],
-        performanceScore: 85,
-        accessibilityViolations: [
-          {
-            id: 'color-contrast',
-            impact: 'moderate',
-            description: 'Elements must meet minimum color contrast ratio requirements',
-            help: 'Ensure text has sufficient contrast against its background',
-            helpUrl: 'https://dequeuniversity.com/rules/axe/4.4/color-contrast',
-            tags: ['wcag2aa', 'wcag143'],
-            nodes: [
-              {
-                html: '<button class="cta-button">Get Started</button>',
-                target: ['button.cta-button']
-              }
-            ]
-          }
-        ],
-        suggestions: [
-          {
-            category: 'performance',
-            priority: 'medium',
-            title: 'Optimize image loading',
-            description: 'Implement lazy loading for images below the fold',
-            implementation: 'Add loading="lazy" attribute to img tags',
-            estimatedImpact: 'Improve LCP by 15-20%'
-          },
-          {
-            category: 'ux',
-            priority: 'high',
-            title: 'Improve form validation',
-            description: 'Add real-time validation feedback to form fields',
-            implementation: 'Implement client-side validation with immediate feedback',
-            estimatedImpact: 'Reduce form abandonment by 25%'
-          }
-        ],
-        copyAnalysis: {
-          readabilityScore: 78,
-          clarityIssues: [
-            'Technical jargon in hero section may confuse users',
-            'Missing clear value proposition'
-          ],
-          improvementSuggestions: [
-            'Simplify technical language for broader audience',
-            'Add clear benefit statement in first 3 seconds'
-          ]
-        },
-        performanceMetrics: {
-          firstContentfulPaint: 1.2,
-          largestContentfulPaint: 2.8,
-          cumulativeLayoutShift: 0.05,
-          firstInputDelay: 0.15,
-          speedIndex: 2.1
-        },
-        accessibilityMetrics: {
-          violations: 3,
-          passes: 45,
-          incomplete: 2,
-          inapplicable: 12
-        }
-      },
-      success: true
+    // Determine LLM provider from request or environment
+    const provider: LLMProvider = body.provider || (process.env.DEFAULT_LLM_PROVIDER as LLMProvider) || 'openai';
+    
+    // Create audit service with specified provider
+    const auditService = createAuditService(provider);
+    
+    // Execute audit
+    const auditRequest: AuditRequest = {
+      url: validatedData.url,
+      projectId: validatedData.projectId,
+      auditType: validatedData.auditType,
+      provider
     };
-
-    // TODO: Save audit results to database if projectId is provided
-    if (validatedData.projectId) {
-      // await prisma.audit.create({
-      //   data: {
-      //     projectId: validatedData.projectId,
-      //     url: validatedData.url,
-      //     auditType: validatedData.auditType,
-      //     results: auditResponse.audit
-      //   }
-      // });
-    }
+    
+    const auditResponse = await auditService.executeAudit(auditRequest);
 
     return NextResponse.json(auditResponse);
 
@@ -194,12 +107,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.error('Error performing audit:', error);
+    console.error('Error executing audit:', error);
     return NextResponse.json({
       success: false,
       error: {
-        code: 'API_ERROR',
-        message: 'Internal server error'
+        code: 'AUDIT_ERROR',
+        message: 'Audit execution failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       timestamp: new Date()
     }, { status: 500 });

@@ -1,0 +1,19 @@
+{
+  "install": "pnpm install",
+  "terminals": [
+    {
+      "name": "V0 Generation",
+      "command": "node scripts/generate-with-v0.js"
+    },
+    {
+      "name": "Development Server",
+      "command": "npm run dev --workspace frontend"
+    }
+  ],
+  "v0": {
+    "enabled": true,
+    "model": "v0-1.5-sm",
+    "saveToWorkspace": true,
+    "enablePreview": true
+  }
+} 

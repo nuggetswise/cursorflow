@@ -1,0 +1,70 @@
+# V0 Integration Rules for Cursor IDE
+# This file configures V0 AI-powered UI generation commands
+
+commands:
+  - name: generate
+    description: Generate React components using V0 AI
+    pattern: "/generate"
+    action: |
+      # V0 Component Generation Command
+      # Usage: /generate "Create a login form"
+      
+      echo "🚀 V0 Component Generation"
+      echo "=========================="
+      echo ""
+      echo "I'll help you generate React components using V0 AI."
+      echo "Just describe what you want to create!"
+      echo ""
+      echo "Examples:"
+      echo "- Create a login form"
+      echo "- Build a dashboard card"
+      echo "- Make a navigation bar"
+      echo "- Generate a data table"
+      echo ""
+      echo "I'll use the V0 SDK to generate clean, modern components"
+      echo "and save them directly to your workspace."
+      echo ""
+      echo "To generate a component, use: /generate \"your description here\""
+      
+  - name: v0-generate
+    description: Direct V0 component generation
+    pattern: "/v0-generate"
+    action: |
+      # Direct V0 Generation
+      # This will immediately generate components using V0
+      
+      echo "🎯 Direct V0 Generation"
+      echo "======================="
+      echo ""
+      echo "Ready to generate components with V0 AI!"
+      echo "I'll use the latest V0 SDK to create your components."
+      echo ""
+      echo "To generate a component, use: /v0-generate \"your description here\""
+      
+  - name: v0-preview
+    description: Get V0 preview URL
+    pattern: "/v0-preview"
+    action: |
+      # V0 Preview Management
+      echo "🔗 V0 Preview Management"
+      echo "========================"
+      echo ""
+      echo "I'll help you manage V0 preview URLs and generated components."
+      
+  - name: v0-continue
+    description: Continue V0 conversation
+    pattern: "/v0-continue"
+    action: |
+      # Continue V0 Chat
+      echo "🔄 Continue V0 Conversation"
+      echo "==========================="
+      echo ""
+      echo "I'll help you continue an existing V0 chat conversation."
+
+# V0 Integration Settings
+settings:
+  v0_model: "v0-1.5-sm"
+  save_to_workspace: true
+  enable_preview: true
+  auto_backup: true
+  max_prompt_length: 1000 

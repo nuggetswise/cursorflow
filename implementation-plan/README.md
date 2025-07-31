@@ -2,20 +2,43 @@
 
 ## 🎯 **Executive Summary**
 
-**CursorFlow** is a unified platform that combines the speed of Nuggetwise Builder's `/nw` commands with the comprehensive capabilities of a full PRD-to-Code platform. Users can choose between:
+**CursorFlow** is a unified platform that provides **MCP (Model Context Protocol) integration as the primary approach** for seamless Cursor IDE integration, enhanced with V0 AI-powered UI generation. The platform offers:
 
-- **Quick Build Mode** (`/nw`): Generate React/Tailwind frontends in 30 seconds
-- **Full Platform Mode**: Complete PRD-to-production workflow with backend integration
+- **MCP Integration (Primary)**: Seamless Cursor IDE integration with intelligent AI responses and context-aware generation
+- **CLI Option (Secondary)**: Command-line interface for power users who prefer automation and scripting
+- **Multi-Platform Support**: MCP works across Cursor IDE, NPX CLI, and VS Code extension for consistent experience
 
 ### **Core Value Proposition**
-- **For Non-Technical Users**: Single `/nw build "idea"` command → working frontend
-- **For Product Managers**: Comprehensive PRD generation and full-stack development
-- **For Teams**: Seamless collaboration with transparent AI reasoning
-- **For Organizations**: 80% reduction in time-to-market with enterprise features
+- **For Non-Technical Users**: Natural language prompts → intelligent MCP responses with V0 UI generation
+- **For Product Managers**: Seamless MCP integration for comprehensive PRD generation and full-stack development
+- **For Teams**: Native Cursor IDE collaboration with transparent AI reasoning and MCP integration
+- **For Organizations**: 80% reduction in time-to-market with MCP-first enterprise features and multi-platform support
+
+## 📁 **Documentation Organization**
+
+This implementation plan is organized into two main folders for different stakeholders:
+
+### **👨‍💻 [Developer Implementation](./dev-implementation/)**
+Technical documentation for developers and engineering teams:
+- API Specifications & Backend Architecture
+- MCP-First System Architecture (includes comprehensive overview)
+- V0 Integration Implementation Plan
+- Nuggetwise Builder Technical Implementation
+- Integration Guide & MCP Alignment
+- Testing Strategies & Deployment Guides
+- Environment Setup & Configuration
+
+### **💼 [Business & Product](./business-product/)**
+Business strategy and product documentation for product managers and business teams:
+- Product Requirements Document (PRD)
+- Business Model & Pricing Strategy
+- Platform Overview & Feature Specifications
+- User Experience Analysis & Market Research
+- Implementation Roadmap
 
 ## 🏗️ **Architecture Overview**
 
-### **Dual-Mode System**
+### **Enhanced System Architecture**
 ```mermaid
 graph TD
     A[User Input] --> B{Complexity Assessment}
@@ -23,98 +46,84 @@ graph TD
     B -->|Full App| D[CursorFlow Platform]
     C --> E[7-Agent Orchestration]
     D --> F[Multi-Phase Workflow]
-    E --> G[React Components]
-    F --> H[Full-Stack App]
-    G --> I[Cursor Workspace]
-    H --> J[Production Deploy]
-    I --> K[Quick Preview]
-    J --> L[Live Application]
+    E --> G[V0 UI Generation]
+    F --> H[V0 UI Generation]
+    G --> I[React Components]
+    H --> I
+    I --> J[Cursor Workspace]
+    I --> K[NPX CLI]
+    I --> L[VS Code Extension]
+    J --> M[Quick Preview]
+    K --> N[Project Scaffolding]
+    L --> O[Extension Marketplace]
+    M --> P[Live Application]
+    N --> P
+    O --> P
 ```
 
-### **Nuggetwise Builder (Quick Mode)**
-- **7-Agent System**: Intent-Analysis → UX-Pattern Selector → Validation → UI-Req Synthesizer → v0 Prompt-Builder → Diff-Detector → Notification
-- **MCP Integration**: Model Context Protocol for Cursor integration
-- **Slack Notifications**: Real-time updates and alerts
-- **Budget Guards**: Cost and timeout protection
+### **MCP Integration (Primary Mode)**
+- **7-Agent System**: Intent-Analysis → UX-Pattern Selector → Validation → UI-Req Synthesizer → V0 Prompt-Builder → Diff-Detector → Notification
+- **V0 Integration**: AI-powered UI generation with direct file writing
+- **Native Cursor Integration**: Seamless Model Context Protocol integration
+- **Intelligent Responses**: Context-aware AI responses with rich formatting
+- **Multi-Platform Support**: Works across Cursor IDE, NPX CLI, and VS Code extension
 
-### **CursorFlow Platform (Full Mode)**
-- **PRD Generation**: AI-powered requirements documentation
-- **v0 Integration**: Direct PRD-to-code transformation
+### **CLI Option (Secondary Mode)**
+- **Command-Line Interface**: For power users who prefer automation and scripting
+- **V0 Integration**: AI-powered UI generation with command-line workflow
 - **Backend Logic**: Full-stack application development
 - **Design Critique**: AI-powered UX analysis and optimization
 - **Enterprise Features**: Authentication, version control, compliance
+- **Legacy Support**: Maintains compatibility with existing CLI workflows
 
-## 🚀 **Implementation Phases**
+## 🚀 **Quick Start Guide**
 
-### **Phase 1: Documentation & Planning (Week 1)**
-- [ ] Update all documentation files
-- [ ] Create new agent prompts
-- [ ] Update environment configuration
-- [ ] Set up development infrastructure
+### **For Developers**
+1. Start with [Environment Setup](./dev-implementation/ENVIRONMENT_SETUP.md)
+2. Review [MCP-First Architecture](./dev-implementation/HYBRID_ARCHITECTURE.md) (includes comprehensive overview)
+3. Implement using [API Specs](./dev-implementation/API_SPECS.md) and [Backend Specs](./dev-implementation/BACKEND_SPECS.md)
+4. Follow [V0 Integration Plan](./dev-implementation/V0_INTEGRATION_ENHANCED_PLAN.md)
+5. Use [Nuggetwise Builder](./dev-implementation/NUGGETWISE_BUILDER.md) for MCP implementation
+6. Follow [Testing Strategy](./dev-implementation/TESTING.md)
+7. Deploy using [Deployment Guide](./dev-implementation/DEPLOYMENT.md)
 
-### **Phase 2: Nuggetwise Builder MVP (Weeks 2-3)**
-- [ ] Implement 7-agent orchestration system
-- [ ] Create MCP server with `/nw` commands
-- [ ] Add Slack integration
-- [ ] Implement budget and timeout guards
-
-### **Phase 3: Platform Integration (Weeks 4-5)**
-- [ ] Connect Nuggetwise to CursorFlow backend
-- [ ] Add "Upgrade to Full App" functionality
-- [ ] Implement unified authentication
-- [ ] Create seamless mode switching
-
-### **Phase 4: Enterprise Features (Week 6)**
-- [ ] Add version control and collaboration
-- [ ] Implement compliance and security features
-- [ ] Create analytics and monitoring
-- [ ] Launch beta program
+### **For Product Managers**
+1. Review [Product Requirements](./business-product/CURSORFLOW_PRD.md)
+2. Understand [Business Model](./business-product/BUSINESS_MODEL.md)
+3. Plan with [Implementation Checklist](./business-product/HYBRID_IMPLEMENTATION_CHECKLIST.md)
+4. Analyze [User Flows](./business-product/V0_USER_FLOW_COMPARISON.md)
 
 ## 🎯 **Success Metrics**
 
-### **Quick Build Mode**
-- **Speed**: <30 seconds from idea to working frontend
-- **Success Rate**: >95% successful generation
-- **User Satisfaction**: >4.5/5 rating
+### **MCP Integration (Primary)**
+- **Speed**: <15 seconds from natural language prompt to intelligent response
+- **Success Rate**: >95% successful MCP interactions
+- **User Satisfaction**: >4.5/5 rating for seamless Cursor IDE integration
+- **Adoption Rate**: >80% of users prefer MCP over CLI
 
-### **Full Platform Mode**
-- **Time Reduction**: 80% faster than traditional development
-- **Quality**: >90% of generated code passes review
-- **Enterprise Adoption**: >50% of users upgrade from Quick Build
+### **CLI Option (Secondary)**
+- **Speed**: <30 seconds from command to working frontend
+- **Success Rate**: >90% successful CLI generation
+- **User Satisfaction**: >4.0/5 rating for power users
+- **Usage Rate**: <20% of users prefer CLI for automation
 
-## 📚 **Documentation Structure**
+## 🔗 **Quick Navigation**
 
-```
-implementation-plan/
-├── README.md                    # This file - Overview
-├── HYBRID_ARCHITECTURE.md       # Technical architecture
-├── NUGGETWISE_BUILDER.md        # Quick build implementation
-├── HYBRID_IMPLEMENTATION_CHECKLIST.md # Complete task breakdown
-├── HYBRID_SUMMARY.md            # Executive summary
-├── CURSORFLOW_PRD.md            # Product requirements
-├── BUSINESS_MODEL.md            # Business strategy
-├── API_SPECS.md                 # API documentation
-├── DEPLOYMENT.md                # Deployment strategies
-├── TESTING.md                   # Testing strategies
-├── FRONTEND_SPECS.md            # Frontend specifications
-├── BACKEND_SPECS.md             # Backend specifications
-└── ENVIRONMENT_SETUP.md         # Environment configuration
-```
+### **Technical Documentation**
+- [MCP-First Architecture](./dev-implementation/HYBRID_ARCHITECTURE.md) (includes comprehensive overview)
+- [API Specifications](./dev-implementation/API_SPECS.md)
+- [Backend Architecture](./dev-implementation/BACKEND_SPECS.md)
+- [V0 Integration Plan](./dev-implementation/V0_INTEGRATION_ENHANCED_PLAN.md)
+- [Nuggetwise Builder](./dev-implementation/NUGGETWISE_BUILDER.md)
+- [Testing Strategy](./dev-implementation/TESTING.md)
+- [Deployment Guide](./dev-implementation/DEPLOYMENT.md)
 
-## 🔗 **Quick Links**
-
-- [Hybrid Architecture](./HYBRID_ARCHITECTURE.md)
-- [Nuggetwise Builder](./NUGGETWISE_BUILDER.md)
-- [Implementation Checklist](./HYBRID_IMPLEMENTATION_CHECKLIST.md)
-- [Executive Summary](./HYBRID_SUMMARY.md)
-- [Product Requirements](./CURSORFLOW_PRD.md)
-- [Business Model](./BUSINESS_MODEL.md)
-- [API Specifications](./API_SPECS.md)
-- [Deployment Guide](./DEPLOYMENT.md)
-- [Testing Strategy](./TESTING.md)
-- [Frontend Specs](./FRONTEND_SPECS.md)
-- [Backend Specs](./BACKEND_SPECS.md)
-- [Environment Setup](./ENVIRONMENT_SETUP.md)
+### **Business Documentation**
+- [Product Requirements](./business-product/CURSORFLOW_PRD.md)
+- [Business Model](./business-product/BUSINESS_MODEL.md)
+- [Platform Overview](./business-product/CURSORFLOW_PLATFORM.md)
+- [Implementation Roadmap](./business-product/HYBRID_IMPLEMENTATION_CHECKLIST.md)
+- [User Experience Analysis](./business-product/V0_USER_FLOW_COMPARISON.md)
 
 ---
 

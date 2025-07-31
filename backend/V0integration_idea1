@@ -1,0 +1,130 @@
+Below is an **updated playbook** that folds in the **NPX CLI** and **VS Code Extension** options alongside the core Cursor agent flow. Sections you’ll need to add or adjust are highlighted.
+
+---
+
+### **Implementation Playbook — “Prompt-to-UI” inside Cursor (no Git, no ZIPs) + NPX CLI + VS Code Extension**
+
+#### 0. Scope & Success Criteria
+
+> *unchanged*
+
+#### 1. Prerequisites
+
+Add to your existing list:
+
+* **Node ≥ 18 & pnpm** (for both the Cursor VM and the NPX CLI)
+* **VS Code†** with Extension Development Host (for building the extension)
+* **npm org account** (to publish `nuggetwise-init` CLI)
+* **vsce** CLI (to package/publish the VS Code extension)
+
+#### 2. Install project-level deps (one-time)
+
+*Unchanged* – you still `pnpm add -D v0-sdk`.
+
+---
+
+#### 3. Core generator script
+
+*Unchanged*, aside from removing the fallback default prompt (see prior turn).
+
+---
+
+#### 4. Cursor Background Agent
+
+*Unchanged*, aside from noting it’s now one of three supported flows.
+
+---
+
+#### 5. Define agent commands
+
+*Unchanged*.
+
+---
+
+#### 6. End-to-end usage
+
+*Unchanged for Cursor users.*
+
+---
+
+#### **NEW 7. NPX CLI: `npx nuggetwise-init`**
+
+**Goal:** allow anyone to scaffold the entire demo with one line.
+
+1. **Create** a new npm package `nuggetwise-init` with `bin` entry.
+2. On `npx nuggetwise-init`, copy the **entire template** (
+   `.env.example`, `package.json`, `scripts/`, `.cursor/`, `README.md` ) into `./nuggetwise-v0-demo`.
+3. Run `npm install` inside that folder.
+4. Print next steps:
+
+   ```
+   cd nuggetwise-v0-demo
+   cursor open .
+   Type in chat:
+     /generate Build me a note-taking app…
+   ```
+5. **Deliverable**: a published npm package that anyone can `npx`.
+
+---
+
+#### **NEW 8. VS Code Extension: “Nuggetwise UI Generator”**
+
+**Goal:** embed `/generate` right into VS Code’s Command Palette.
+
+1. Scaffold via `yo code` → TypeScript extension.
+2. Add a command `nuggetwise.generateUI` that:
+
+   * Prompts the user with `showInputBox` for their NL prompt.
+   * Calls the same core script logic (either import `scripts/generate-with-v0.js` or inline).
+   * Writes `chat.files` into the current workspace’s `frontend/`.
+   * Pops up an `InformationMessage` with **“Open Preview”** button.
+3. Package & publish with `vsce`:
+
+   * Define `publisher`, icons, README, activation events.
+   * `vsce package` → `.vsix` or `vsce publish`.
+4. **Deliverable**: a Marketplace extension users install in one click.
+
+---
+
+#### 9. Cost & model details
+
+*Unchanged.*
+
+---
+
+#### 10. Caveats & mitigations
+
+*Add notes about CLI and extension maintenance:*
+
+* **CLI template drift:** bump versions when core script changes.
+* **Extension compatibility:** test on each new VS Code release.
+
+---
+
+#### 11. Future extensions
+
+*Merge with existing, noting that both CLI and extension can consume an MCP server down the road.*
+
+---
+
+### Deliverables checklist for the dev team
+
+* [ ] **Core**
+
+  * `.env` with `V0_API_KEY`
+  * `pnpm add -D v0-sdk`
+  * `scripts/generate-with-v0.js`
+  * `.cursor/environment.json` + Rules for `/generate`
+  * README updated
+
+* [ ] **NPX CLI**
+
+  * `nuggetwise-init` npm package scaffolded
+  * `bin` script copying template files + running `npm install`
+  * Published to npm
+
+* [ ] **VS Code Extension**
+
+  * Extension project (`yo code`) created
+  * `nuggetwise.generateUI` command implemented
+  * Packaged & published via `vsce`

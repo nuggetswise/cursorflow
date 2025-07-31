@@ -1,0 +1,17 @@
+# Test rule for MCP command recognition
+# This file tests if Cursor can recognize custom commands
+
+commands:
+  - name: test-v0
+    description: Test V0 integration command
+    pattern: "/test-v0"
+    action: |
+      echo "MCP command recognition test successful!"
+      echo "V0 integration test command recognized by Cursor"
+      
+  - name: test-mcp
+    description: Test MCP functionality
+    pattern: "/test-mcp"
+    action: |
+      echo "MCP test command executed successfully"
+      echo "Cursor IDE MCP integration is working" 

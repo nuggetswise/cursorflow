@@ -1,0 +1,183 @@
+### **Implementation Playbook — “Prompt-to-UI” inside Cursor with the v0 Platform API (no Git, no ZIPs)**
+
+---
+
+#### 0. Scope & Success Criteria
+
+* **Prompt interface:** a Cursor *Background Agent* accepts chat instructions such as **“Build me a note-taking app”**.
+* **Preview:** the agent replies with a **public `chat.demo` URL** that opens instantly in the browser.
+* **Local code import:** on the same run it writes every generated file into **`frontend/`** of the active workspace, so the dev server hot-reloads.
+* **One-click re-gen:** the user can send a follow-up prompt (e.g., “make the header sticky”) and get an updated preview + file overwrite.
+* **No GitHub, no ZIP extraction, no manual pull script.**
+
+---
+
+#### 1. Prerequisites
+
+| Item                                               | Notes                                                                               |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Cursor** 0.46 + with *Background Agents* enabled | Agents run in an **Ubuntu VM** with internet and can install packages ([Cursor][1]) |
+| **v0 Premium / Team plan** + **API key**           | The API is in beta and only works when usage-based billing is on ([v0][2])          |
+| **Node ≥ 18 & pnpm** in the agent’s VM             | Needed to install `v0-sdk` & run the generator script                               |
+| **Local repo layout**                              |                                                                                     |
+
+````
+.
+├─ .cursor/            # Cursor metadata
+├─ frontend/           # Your Next.js / Vite code
+└─ scripts/
+   └─ generate-with-v0.js
+``` |
+
+Add a **`.env`** (not committed) in the workspace root:  
+
+```bash
+V0_API_KEY=pk_live_****
+````
+
+---
+
+#### 2. Install project-level deps (one-time)
+
+```bash
+pnpm add -D v0-sdk
+```
+
+The v0 SDK will auto-read `V0_API_KEY` from the environment ([v0][3]).
+
+---
+
+#### 3. `scripts/generate-with-v0.js`
+
+```js
+#!/usr/bin/env node
+import { v0 } from 'v0-sdk'
+import fs from 'fs'
+import path from 'path'
+
+async function main() {
+  const prompt = process.argv.slice(2).join(' ') ||
+                 'Build me a note-taking app with markdown support and tag filters'
+
+  // 1 Generate
+  const chat = await v0.chats.create({ message: prompt })
+
+  // 2 Write files to frontend/
+  for (const file of chat.files ?? []) {
+    const out = path.resolve('frontend', file.name)
+    fs.mkdirSync(path.dirname(out), { recursive: true })
+    fs.writeFileSync(out, file.content, 'utf8')
+  }
+
+  // 3 Return preview URL for agent reply
+  console.log(`PREVIEW_URL=${chat.demo}`)
+}
+
+main().catch(err => { console.error(err); process.exit(1) })
+```
+
+Make it executable: `chmod +x scripts/generate-with-v0.js`.
+
+---
+
+#### 4. Create the Cursor *Background Agent*
+
+1. Press **⌃ E** (macOS) to open *Background Agent Control Panel*.
+2. “**New Agent → From current workspace**”.
+3. In the **setup wizard** put:
+
+```jsonc
+// .cursor/environment.json
+{
+  "install": "pnpm install",
+  "terminals": [
+    { "name": "Hot-reload", "command": "npm run dev --workspace frontend" }
+  ]
+}
+```
+
+*(You can omit GitHub integration; the VM will mount your local files and never push.)*
+
+Agents inherit internet & shell access from the VM, so `pnpm install v0-sdk` and `node scripts/...` just work ([Cursor][1]).
+
+---
+
+#### 5. Define agent commands (Rules are optional)
+
+*Open the agent’s *Rules* side-pane* and add:
+
+```
+When the user writes **/generate <prompt>**
+→ Run:  node scripts/generate-with-v0.js "<prompt>"
+→ Reply with Markdown:
+   ✅ Done 
+   - **Open Live Preview:** <stdout PREVIEW_URL>  
+   - Files written to `frontend/`
+```
+
+(Advanced: drop a `AI_RULES.md` in repo for permanent styling conventions—Dyad-style, but v0 ignores it.)
+
+---
+
+#### 6. End-to-end usage
+
+| User action in Cursor chat             | Under the hood                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| `/generate Build me a note-taking app` | Agent runs the script, v0 creates chat, writes files, prints preview URL |
+| Agent reply                            |                                                                          |
+
+````
+✅ Done  
+- Open Live Preview → https://v0.dev/demo/abc123
+- Files saved in frontend/
+``` |
+| Dev tweaks a component | Hot-reload shows the change locally |
+| `/generate Add sticky header` | `v0.chats.sendMessage({ chatId, message })` ⇒ updates files & preview URL |
+
+No ZIPs, no Git.
+
+---
+
+#### 7. Cost & model details  
+
+* Default model is **`v0-1.5-md`** (UI-centric) or **`v0-1.5-lg`** (heavier) :contentReference[oaicite:4]{index=4}.  
+* Your **API key owner** pays the per-token cost; each generation counts as one request against the account’s quota.  
+* Preview links are **public read-only**; anyone can open without logging in :contentReference[oaicite:5]{index=5}.
+
+---
+
+#### 8. Caveats & mitigations  
+
+| Risk | Mitigation |
+|------|------------|
+| **Prompt-injection can run arbitrary shell commands** | Keep the agent VM in privacy mode; scope writes to `frontend/` only; review prompts for `/generate` prefix. |
+| **Large prompt => high bill** | Add an agent guard: refuse prompts > 1000 chars or ask for confirmation. |
+| **Preview links auto-expire (30 days undocumented)** | Store the latest URL in `.cursor/v0-preview.txt`; regenerate on demand. |
+| **API rate-limit (≈30 req/min)** | Debounce `/generate` command or queue inside the agent. |
+
+---
+
+#### 9. Future extensions  
+
+* **Replay without regen:** instead of new v0 calls, point the iframe to `localhost:3000` so local edits preview instantly.  
+* **MCP server:** expose your design-system tokens so the agent injects consistent branding automatically (optional; MCP install links live at `cursor://…` ﻿:contentReference[oaicite:6]{index=6}).  
+* **GitHub add-on later:** when you want PRs, just switch the agent’s environment to clone & commit—no code changes to the generator script.
+
+---
+
+### Deliverables checklist for the dev team  
+
+- [ ] `.env` with `V0_API_KEY`  
+- [ ] `pnpm add -D v0-sdk`  
+- [ ] `scripts/generate-with-v0.js` (as above)  
+- [ ] `.cursor/environment.json` with `install` + optional hot-reload terminal  
+- [ ] Agent Rules mapping `/generate` to the script & markdown reply  
+- [ ] Project readme update linking this playbook  
+
+Once these five artifacts are in place, **any team-mate can open Cursor, type a prompt, and get production-grade React code + a live v0 preview in ~15 seconds**—all without touching Git or extracting ZIP archives.
+::contentReference[oaicite:7]{index=7}
+````
+
+[1]: https://docs.cursor.com/background-agent "Cursor – Background Agents"
+[2]: https://v0.dev/docs/api/model "v0 Model API | v0 Docs"
+[3]: https://v0.dev/docs/api/platform/quickstart "Quickstart | v0 Docs"
