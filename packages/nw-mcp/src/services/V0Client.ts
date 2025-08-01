@@ -65,7 +65,10 @@ export class V0Client {
       console.error('🔧 V0Client: Options:', options);
       
       const result = await this.v0Client.chats.create({
-        message: prompt,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }],
         modelConfiguration: {
           modelId: options.modelId || 'v0-1.5-sm',
         },
@@ -143,7 +146,10 @@ export class V0Client {
     try {
       const result = await this.v0Client.chats.sendMessage({
         chatId,
-        message
+        messages: [{
+          role: 'user',
+          content: message
+        }]
       });
 
       const files = result.latestVersion?.files || [];
