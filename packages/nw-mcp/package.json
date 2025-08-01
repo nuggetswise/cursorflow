@@ -1,9 +1,12 @@
 {
-  "name": "@cursorflow/nw-mcp",
+  "name": "@cursorflow/nuggetwise-v0",
   "version": "1.0.0",
-  "description": "Nuggetwise Builder MCP Server for CursorFlow",
+  "description": "Magic Nuggetwise - AI-powered React component generation for Cursor IDE",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/mcp-server.js",
+  "bin": {
+    "nuggetwise-v0": "dist/mcp-server.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/index.ts",
@@ -50,8 +53,23 @@
     "cursor",
     "nuggetwise",
     "ai",
-    "code-generation"
+    "code-generation",
+    "react",
+    "v0",
+    "components",
+    "typescript"
   ],
-  "author": "CursorFlow Team",
-  "license": "MIT"
+  "author": "Magic Nuggetwise Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nuggetswise/cursorflow.git"
+  },
+  "homepage": "https://nuggetwise.com",
+  "bugs": {
+    "url": "https://github.com/nuggetswise/cursorflow/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

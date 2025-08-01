@@ -20,6 +20,28 @@ The Nuggetwise MCP (Model Context Protocol) Server is the core component of the 
 
 ## 🛠️ Installation
 
+### Option 1: One-Click Installation (Recommended)
+
+1. **Visit the Magic Nuggetwise website:**
+   - Go to [nuggetwise.com](https://nuggetwise.com)
+   - Click "Add to Cursor" button
+   - Cursor will automatically install the MCP server
+
+2. **Configure your V0 API key:**
+   - Get your V0 API key from [v0.dev/settings/api-keys](https://v0.dev/settings/api-keys)
+   - Open Cursor Settings → MCP
+   - Find the "nuggetwise-v0" server
+   - Add this to the "env" section:
+   ```json
+   "V0_API_KEY": "v1:your-actual-v0-api-key-here"
+   ```
+
+3. **Test the installation:**
+   - Try `/nuggetwise-v0/status` to check connection
+   - Try `/nuggetwise-v0/generate create a button` to test generation
+
+### Option 2: Manual Installation
+
 1. **Clone and navigate to the MCP server directory:**
    ```bash
    cd packages/nw-mcp
@@ -41,24 +63,85 @@ The Nuggetwise MCP (Model Context Protocol) Server is the core component of the 
    npm run build
    ```
 
+5. **Configure in Cursor:**
+   - Open Cursor Settings → MCP
+   - Add new server configuration:
+   ```json
+   {
+     "mcpServers": {
+       "nuggetwise-v0": {
+         "command": "node",
+         "args": ["/path/to/packages/nw-mcp/dist/mcp-server.js"],
+         "env": {
+           "V0_API_KEY": "v1:your-actual-v0-api-key-here"
+         }
+       }
+     }
+   }
+   ```
+
 ## ⚙️ Configuration
+
+### V0 API Key Setup
+
+Magic Nuggetwise requires a V0 API key to generate components. Here's how to set it up:
+
+1. **Get your V0 API key:**
+   - Visit [v0.dev](https://v0.dev) and sign up (free!)
+   - Go to Settings → API Keys → Create New Key
+   - Copy your key (starts with "v1:")
+
+2. **Configure in Cursor:**
+   - Open Cursor Settings → MCP
+   - Find the "nuggetwise-v0" server
+   - Add this to the "env" section:
+   ```json
+   "V0_API_KEY": "v1:your-actual-v0-api-key-here"
+   ```
+
+3. **Test your setup:**
+   - Run `/nuggetwise-v0/status` to check connection
+   - Run `/nuggetwise-v0/generate create a button` to test generation
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `3001` |
-| `NODE_ENV` | Environment mode | `development` |
-| `OPENAI_API_KEY` | OpenAI API key | Required |
-| `V0_API_KEY` | V0.dev API key | Optional |
-| `SLACK_WEBHOOK_URL` | Slack webhook URL | Optional |
-| `CURSOR_WORKSPACE_PATH` | Cursor workspace path | `/workspace` |
-| `MAX_COST` | Daily budget limit | `10.0` |
-| `MAX_TIME` | Request timeout (ms) | `300000` |
-| `MAX_RETRIES` | Max retry attempts | `3` |
-| `COST_PER_TOKEN` | Cost per token | `0.00003` |
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `PORT` | Server port | `3001` | No |
+| `NODE_ENV` | Environment mode | `development` | No |
+| `OPENAI_API_KEY` | OpenAI API key | - | Yes |
+| `V0_API_KEY` | V0.dev API key | - | Yes |
+| `SLACK_WEBHOOK_URL` | Slack webhook URL | - | No |
+| `CURSOR_WORKSPACE_PATH` | Cursor workspace path | `/workspace` | No |
+| `MAX_COST` | Daily budget limit | `10.0` | No |
+| `MAX_TIME` | Request timeout (ms) | `300000` | No |
+| `MAX_RETRIES` | Max retry attempts | `3` | No |
+| `COST_PER_TOKEN` | Cost per token | `0.00003` | No |
 
 ## 🚀 Usage
+
+### Available Commands
+
+Once installed, you can use these commands in Cursor:
+
+- **`/nuggetwise-v0/generate <prompt>`** - Generate React components
+- **`/nuggetwise-v0/update <message>`** - Update existing components
+- **`/nuggetwise-v0/status`** - Check API key status and connection
+- **`/nuggetwise-v0/sync`** - Pull changes from V0 web interface
+- **`/nuggetwise-v0/connect <v0-url>`** - Connect to existing V0 project
+
+### Examples
+
+```bash
+# Generate a button component
+/nuggetwise-v0/generate create a modern button with hover effects
+
+# Update existing component
+/nuggetwise-v0/update make the button larger and add a loading state
+
+# Check connection status
+/nuggetwise-v0/status
+```
 
 ### Development Mode
 
@@ -79,6 +162,51 @@ npm start
 # Run the test script
 node test-build.js
 ```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### "V0 API Key Required" Error
+**Problem**: You're getting setup instructions instead of component generation.
+
+**Solution**:
+1. Get your V0 API key from [v0.dev/settings/api-keys](https://v0.dev/settings/api-keys)
+2. Open Cursor Settings → MCP
+3. Add `"V0_API_KEY": "v1:your-key-here"` to the env section
+4. Restart Cursor if needed
+
+#### "Invalid API Key" Error
+**Problem**: Your API key is not working.
+
+**Solution**:
+1. Check your key at [v0.dev/settings/api-keys](https://v0.dev/settings/api-keys)
+2. Ensure it starts with "v1:"
+3. Try copying it again
+4. Check if you have sufficient credits
+
+#### "Insufficient Credits" Error
+**Problem**: You don't have enough V0 credits.
+
+**Solution**:
+1. Visit [v0.dev](https://v0.dev) to add funds
+2. Check your current credit balance
+3. Consider upgrading your plan
+
+#### Installation Issues
+**Problem**: The MCP server won't start.
+
+**Solution**:
+1. Try restarting Cursor
+2. Check your internet connection
+3. Verify Cursor version compatibility
+4. Check the MCP server logs in Cursor's developer tools
+
+### Getting Help
+
+- **Documentation**: Visit [docs.nuggetwise.com](https://docs.nuggetwise.com)
+- **Support**: Create an issue in the repository
+- **Community**: Join our Discord for peer help
 
 ## 📡 API Endpoints
 
