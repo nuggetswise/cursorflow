@@ -1,0 +1,56 @@
+"use client"
+
+import { useState } from "react"
+import { InboxScreen } from "@/components/inbox-screen"
+
+enum Screen {
+  BlueScreen = 0,
+  WhiteDotsScreen = 1,
+  InboxScreen = 2,
+}
+
+export default function Home() {
+  const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.BlueScreen)
+
+  const handleBlueScreenClick = () => {
+    setCurrentScreen(Screen.WhiteDotsScreen)
+  }
+
+  const handleWhiteDotsClick = () => {
+    setCurrentScreen(Screen.InboxScreen)
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      {currentScreen === Screen.BlueScreen && (
+        <div
+          className="absolute inset-0 bg-blue-600 flex items-center justify-center cursor-pointer text-white text-2xl font-bold"
+          onClick={handleBlueScreenClick}
+        >
+          Click to reveal the file...
+        </div>
+      )}
+
+      {currentScreen === Screen.WhiteDotsScreen && (
+        <div
+          className="absolute inset-0 bg-blue-600 flex items-center justify-center cursor-pointer"
+          onClick={handleWhiteDotsClick}
+          style={{
+            backgroundImage: "radial-gradient(white 1px, transparent 1px)",
+            backgroundSize: "20px 20px", // Adjust size for dot density
+          }}
+        >
+          <div className="text-white text-2xl font-bold p-4 bg-black bg-opacity-50 rounded">
+            Click the white dots to open inbox...
+          </div>
+        </div>
+      )}
+
+      {currentScreen === Screen.InboxScreen && (
+        <div className="absolute inset-0">
+          <InboxScreen />
+        </div>
+      )}
+    </div>
+  )
+}

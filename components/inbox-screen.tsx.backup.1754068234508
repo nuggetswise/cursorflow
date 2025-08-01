@@ -1,0 +1,408 @@
+"use client"
+
+import { useState } from "react"
+import {
+  Menu,
+  Search,
+  HelpCircle,
+  Settings,
+  Grid,
+  Pencil,
+  Inbox,
+  Star,
+  Clock,
+  Send,
+  FileText,
+  ChevronDown,
+  Users,
+  Tag,
+  Info,
+  Mail,
+  Trash2,
+  Archive,
+  CheckIcon as Report,
+  Clock3,
+  CheckSquare,
+  Folder,
+  MoreVertical,
+  ChevronRight,
+} from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
+interface Email {
+  id: string
+  sender: string
+  senderAvatar: string
+  subject: string
+  snippet: string
+  date: string
+  read: boolean
+  starred: boolean
+}
+
+const emails: Email[] = [
+  {
+    id: "1",
+    sender: "Google",
+    senderAvatar: "/placeholder.svg?height=32&width=32",
+    subject: "Security alert for your linked account",
+    snippet: "Your Google Account was recently signed in on a new Windows device.",
+    date: "Jul 29",
+    read: false,
+    starred: false,
+  },
+  {
+    id: "2",
+    sender: "Vercel",
+    senderAvatar: "/placeholder.svg?height=32&width=32",
+    subject: "Your deployment is ready!",
+    snippet: "Your project 'my-next-app' has been successfully deployed.",
+    date: "Jul 28",
+    read: true,
+    starred: true,
+  },
+  {
+    id: "3",
+    sender: "GitHub",
+    senderAvatar: "/placeholder.svg?height=32&width=32",
+    subject: "[GitHub] New pull request on vercel/next.js",
+    snippet: "User 'johndoe' opened a pull request: 'feat: add new component'",
+    date: "Jul 28",
+    read: false,
+    starred: false,
+  },
+  {
+    id: "4",
+    sender: "Stripe",
+    senderAvatar: "/placeholder.svg?height=32&width=32",
+    subject: "Your monthly invoice is ready",
+    snippet: "View your invoice for July 2025.",
+    date: "Jul 27",
+    read: true,
+    starred: false,
+  },
+  {
+    id: "5",
+    sender: "Newsletter",
+    senderAvatar: "/placeholder.svg?height=32&width=32",
+    subject: "Weekly Digest: Top Tech News",
+    snippet: "Catch up on the latest in AI, web development, and more.",
+    date: "Jul 26",
+    read: false,
+    starred: false,
+  },
+]
+
+export function InboxScreen() {
+  const [selectedTab, setSelectedTab] = useState("primary") // primary, social, promotions
+
+  return (
+    <TooltipProvider delayDuration={0}>
+      <div className="flex h-screen overflow-hidden bg-white text-gray-800">
+        {/* Header */}
+        <header className="flex items-center justify-between p-2 border-b border-gmail-border bg-white fixed top-0 left-0 right-0 z-10 h-16">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <Menu className="h-5 w-5 text-gray-600" />
+              <span className="sr-only">Main menu</span>
+            </Button>
+            <div className="flex items-center gap-1">
+              {/* Placeholder for Gmail logo */}
+              <Mail className="h-6 w-6 text-gmail-red" />
+              <span className="text-2xl font-medium text-gray-700">Gmail</span>
+            </div>
+          </div>
+          <div className="flex-1 max-w-2xl mx-4 relative">
+            <Input
+              type="search"
+              placeholder="Search mail"
+              className="w-full pl-10 pr-4 py-2 rounded-full bg-gmail-grey-bg border-none focus:ring-gmail-blue focus:ring-1"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <HelpCircle className="h-5 w-5 text-gray-600" />
+                  <span className="sr-only">Support</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Support</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Settings className="h-5 w-5 text-gray-600" />
+                  <span className="sr-only">Settings</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Settings</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Grid className="h-5 w-5 text-gray-600" />
+                  <span className="sr-only">Google apps</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Google apps</TooltipContent>
+            </Tooltip>
+            <Avatar className="h-8 w-8">
+              <AvatarImage alt="User Avatar" src="/placeholder.svg?height=32&width=32" />
+              <AvatarFallback>JD</AvatarFallback>
+            </Avatar>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <div className="flex flex-1 pt-16">
+          {" "}
+          {/* pt-16 to offset fixed header */}
+          {/* Sidebar */}
+          <aside className="w-60 p-4 border-r border-gmail-border bg-white flex flex-col overflow-y-auto">
+            <Button className="w-full justify-start gap-2 mb-4 rounded-full px-4 py-3 shadow-md bg-gmail-red text-white hover:bg-red-700">
+              <Pencil className="h-5 w-5" />
+              Compose
+            </Button>
+            <nav className="space-y-1">
+              <Button
+                variant="ghost"
+                className={`w-full justify-start gap-3 rounded-r-full ${
+                  selectedTab === "primary" ? "bg-gmail-grey-bg font-semibold text-gmail-blue" : "text-gray-700"
+                }`}
+                onClick={() => setSelectedTab("primary")}
+              >
+                <Inbox className="h-5 w-5" />
+                Inbox
+                <span className="ml-auto text-sm font-normal">1,234</span>
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3 rounded-r-full text-gray-700">
+                <Star className="h-5 w-5" />
+                Starred
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3 rounded-r-full text-gray-700">
+                <Clock className="h-5 w-5" />
+                Snoozed
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3 rounded-r-full text-gray-700">
+                <Send className="h-5 w-5" />
+                Sent
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3 rounded-r-full text-gray-700">
+                <FileText className="h-5 w-5" />
+                Drafts
+                <span className="ml-auto text-sm font-normal">5</span>
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3 rounded-r-full text-gray-700">
+                <ChevronDown className="h-5 w-5" />
+                More
+              </Button>
+            </nav>
+            <Separator className="my-4" />
+            <div className="text-sm font-semibold text-gray-600 mb-2">Labels</div>
+            <nav className="space-y-1">
+              <Button variant="ghost" className="w-full justify-start gap-3 rounded-r-full text-gray-700">
+                <Users className="h-5 w-5 text-green-600" />
+                Family
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3 rounded-r-full text-gray-700">
+                <Tag className="h-5 w-5 text-purple-600" />
+                Work
+              </Button>
+              <Button variant="ghost" className="w-full justify-start gap-3 rounded-r-full text-gray-700">
+                <Info className="h-5 w-5 text-blue-600" />
+                Important
+              </Button>
+            </nav>
+          </aside>
+          {/* Email List Area */}
+          <main className="flex-1 flex flex-col bg-gmail-grey-bg overflow-hidden">
+            {/* Toolbar above email list */}
+            <div className="flex items-center justify-between p-2 border-b border-gmail-border bg-white">
+              <div className="flex items-center gap-2">
+                <Checkbox id="select-all" className="rounded" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <ChevronDown className="h-4 w-4 text-gray-600" />
+                      <span className="sr-only">Select options</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem>All</DropdownMenuItem>
+                    <DropdownMenuItem>None</DropdownMenuItem>
+                    <DropdownMenuItem>Read</DropdownMenuItem>
+                    <DropdownMenuItem>Unread</DropdownMenuItem>
+                    <DropdownMenuItem>Starred</DropdownMenuItem>
+                    <DropdownMenuItem>Unstarred</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Separator orientation="vertical" className="h-6 mx-2" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <Archive className="h-5 w-5 text-gray-600" />
+                      <span className="sr-only">Archive</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Archive</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <Report className="h-5 w-5 text-gray-600" />
+                      <span className="sr-only">Report spam</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Report spam</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <Trash2 className="h-5 w-5 text-gray-600" />
+                      <span className="sr-only">Delete</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <Mail className="h-5 w-5 text-gray-600" />
+                      <span className="sr-only">Mark as read</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Mark as read</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <Clock3 className="h-5 w-5 text-gray-600" />
+                      <span className="sr-only">Snooze</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Snooze</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <CheckSquare className="h-5 w-5 text-gray-600" />
+                      <span className="sr-only">Move to</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Move to</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <Folder className="h-5 w-5 text-gray-600" />
+                      <span className="sr-only">Labels</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Labels</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                      <MoreVertical className="h-5 w-5 text-gray-600" />
+                      <span className="sr-only">More</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>More</TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span>1-50 of 1,234</span>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <ChevronRight className="h-4 w-4 rotate-180" />
+                  <span className="sr-only">Previous page</span>
+                </Button>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <ChevronRight className="h-4 w-4" />
+                  <span className="sr-only">Next page</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Email Tabs */}
+            <div className="flex border-b border-gmail-border bg-white">
+              <Button
+                variant="ghost"
+                className={`flex-1 rounded-none border-b-2 ${
+                  selectedTab === "primary"
+                    ? "border-gmail-blue text-gmail-blue font-semibold"
+                    : "border-transparent text-gray-600 hover:bg-gray-50"
+                }`}
+                onClick={() => setSelectedTab("primary")}
+              >
+                Primary
+              </Button>
+              <Button
+                variant="ghost"
+                className={`flex-1 rounded-none border-b-2 ${
+                  selectedTab === "social"
+                    ? "border-gmail-blue text-gmail-blue font-semibold"
+                    : "border-transparent text-gray-600 hover:bg-gray-50"
+                }`}
+                onClick={() => setSelectedTab("social")}
+              >
+                Social
+              </Button>
+              <Button
+                variant="ghost"
+                className={`flex-1 rounded-none border-b-2 ${
+                  selectedTab === "promotions"
+                    ? "border-gmail-blue text-gmail-blue font-semibold"
+                    : "border-transparent text-gray-600 hover:bg-gray-50"
+                }`}
+                onClick={() => setSelectedTab("promotions")}
+              >
+                Promotions
+              </Button>
+            </div>
+
+            {/* Email List */}
+            <div className="flex-1 overflow-y-auto">
+              {emails.map((email) => (
+                <div
+                  key={email.id}
+                  className={`flex items-center p-3 border-b border-gmail-border cursor-pointer hover:shadow-sm ${
+                    email.read ? "bg-white" : "bg-blue-50 bg-opacity-20 font-semibold"
+                  }`}
+                >
+                  <Checkbox id={`email-${email.id}`} className="mr-4 rounded" />
+                  <Button variant="ghost" size="icon" className="h-6 w-6 mr-4">
+                    <Star
+                      className={`h-4 w-4 ${email.starred ? "text-yellow-500 fill-yellow-500" : "text-gray-400"}`}
+                    />
+                    <span className="sr-only">Star email</span>
+                  </Button>
+                  <Avatar className="h-6 w-6 mr-4">
+                    <AvatarImage alt={email.sender} src={email.senderAvatar || "/placeholder.svg"} />
+                    <AvatarFallback>{email.sender.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 flex items-center">
+                    <div className="w-32 text-sm font-medium truncate">{email.sender}</div>
+                    <div className="flex-1 flex items-center gap-2 ml-4">
+                      <span className="text-sm font-medium truncate">{email.subject}</span>
+                      <span className="text-sm text-gmail-text-light truncate">- {email.snippet}</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gmail-text-light ml-4">{email.date}</div>
+                </div>
+              ))}
+            </div>
+          </main>
+        </div>
+      </div>
+    </TooltipProvider>
+  )
+}

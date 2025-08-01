@@ -1,0 +1,38 @@
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+export default function CounterApp() {
+  const [count, setCount] = useState(0)
+
+  const increment = () => {
+    setCount((prevCount) => prevCount + 1)
+  }
+
+  const decrement = () => {
+    setCount((prevCount) => prevCount - 1)
+  }
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <CardTitle className="text-3xl font-bold">Simple Counter</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-6 p-6">
+          <div className="text-6xl font-extrabold text-gray-800 tabular-nums">{count}</div>
+          <div className="flex gap-4 w-full">
+            <Button onClick={decrement} className="flex-1 py-3 text-lg bg-transparent" variant="outline">
+              Decrement
+            </Button>
+            <Button onClick={increment} className="flex-1 py-3 text-lg">
+              Increment
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

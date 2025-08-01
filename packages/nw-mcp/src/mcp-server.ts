@@ -5,6 +5,7 @@ import {
   ListToolsRequestSchema,
   InitializeRequestSchema,
   ListPromptsRequestSchema,
+  GetPromptRequestSchema,
   Tool,
   CallToolRequest,
 } from '@modelcontextprotocol/sdk/types.js';
@@ -81,6 +82,10 @@ class NuggetwiseMCPServer {
   private server: Server;
   private v0Client: V0Client;
   private fileWriter: FileWriter;
+  private currentChatId: string | null = null;
+  private currentProjectName: string | null = null;
+  private currentProjectId: string | null = null;
+  private stateFile: string;
 
   constructor(config: EnvironmentConfig) {
     this.server = new Server({
@@ -90,8 +95,39 @@ class NuggetwiseMCPServer {
 
     this.v0Client = new V0Client(config);
     this.fileWriter = new FileWriter(config.cursorWorkspacePath);
+    this.stateFile = path.join(config.cursorWorkspacePath, '.mcp-state.json');
+    
+    // Load existing state
+    this.loadState();
 
     this.setupToolHandlers();
+  }
+
+  private loadState() {
+    try {
+      if (fs.existsSync(this.stateFile)) {
+        const state = JSON.parse(fs.readFileSync(this.stateFile, 'utf-8'));
+        this.currentChatId = state.chatId || null;
+        this.currentProjectName = state.projectName || null;
+        this.currentProjectId = state.projectId || null;
+      }
+    } catch (error) {
+      console.error('Failed to load state:', error);
+    }
+  }
+
+  private saveState() {
+    try {
+      const state = {
+        chatId: this.currentChatId,
+        projectName: this.currentProjectName,
+        projectId: this.currentProjectId,
+        timestamp: new Date().toISOString()
+      };
+      fs.writeFileSync(this.stateFile, JSON.stringify(state, null, 2));
+    } catch (error) {
+      console.error('Failed to save state:', error);
+    }
   }
 
   private setupToolHandlers() {
@@ -180,9 +216,97 @@ class NuggetwiseMCPServer {
                 required: true
               }
             ]
+          },
+          {
+            name: 'update',
+            description: 'Update the current project with new requirements or changes',
+            arguments: [
+              {
+                name: 'message',
+                description: 'What changes or updates you want to make',
+                type: 'string',
+                required: true
+              }
+            ]
+          },
+          {
+            name: 'list_projects',
+            description: 'List all V0 projects in your workspace',
+            arguments: []
+          },
+          {
+            name: 'switch_project',
+            description: 'Switch to a different V0 project',
+            arguments: [
+              {
+                name: 'projectId',
+                description: 'ID of the project to switch to',
+                type: 'string',
+                required: true
+              }
+            ]
+          },
+          {
+            name: 'create_project',
+            description: 'Create a new V0 project',
+            arguments: [
+              {
+                name: 'name',
+                description: 'Name of the project to create',
+                type: 'string',
+                required: true
+              },
+              {
+                name: 'description',
+                description: 'Optional description of the project',
+                type: 'string',
+                required: false
+              }
+            ]
           }
         ]
       };
+    });
+
+    // Handle prompt requests
+    this.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+      const { name } = request.params;
+      
+      if (name === 'generate') {
+        return {
+          prompt: {
+            name: 'generate',
+            description: 'Generate React components from a natural-language prompt using V0',
+            arguments: [
+              {
+                name: 'prompt',
+                description: 'What you want to build',
+                type: 'string',
+                required: true
+              }
+            ]
+          }
+        };
+      }
+      
+      if (name === 'update') {
+        return {
+          prompt: {
+            name: 'update',
+            description: 'Update the current project with new requirements or changes',
+            arguments: [
+              {
+                name: 'message',
+                description: 'What changes or updates you want to make',
+                type: 'string',
+                required: true
+              }
+            ]
+          }
+        };
+      }
+      
+      throw new Error(`Unknown prompt: ${name}`);
     });
 
     // Handle tool calls
@@ -192,15 +316,30 @@ class NuggetwiseMCPServer {
       try {
         switch (name) {
           case 'generate': {
-            const { prompt, modelId = 'v0-1.5-sm', saveToWorkspace = true, fileName } = args as any;
+            const { prompt, modelId = 'v0-1.5-sm', saveToWorkspace = true, fileName, projectName = 'New Project' } = args as any;
             
             console.error('🚀 MCP: Starting V0 generation...');
             console.error('📝 MCP: Prompt:', prompt);
-            console.error('🔧 MCP: Options:', { modelId, saveToWorkspace, fileName });
+            console.error('🔧 MCP: Options:', { modelId, saveToWorkspace, fileName, projectName });
+
+            // Create or find V0 project
+            let projectId = this.currentProjectId;
+            if (!projectId) {
+              try {
+                const project = await this.v0Client.createProject(projectName, `Project for: ${prompt}`);
+                projectId = project.id;
+                this.currentProjectId = projectId;
+                this.currentProjectName = project.name;
+                console.error(`✅ MCP: Created V0 project: ${project.name} (ID: ${projectId})`);
+              } catch (error) {
+                console.error('⚠️ MCP: Could not create V0 project, continuing without project organization');
+              }
+            }
             
             const result = await this.v0Client.generateComponents(prompt as string, {
               modelId,
               saveToWorkspace,
+              projectName: this.currentProjectName || 'new-project',
             });
 
             // Debug logging
@@ -211,6 +350,7 @@ class NuggetwiseMCPServer {
               componentsLength: result.components?.length || 0,
               saveToWorkspace,
               chatId: result.chatId,
+              projectId,
               projectUrl: result.projectUrl,
               deploymentUrl: result.deploymentUrl
             });
@@ -239,6 +379,23 @@ class NuggetwiseMCPServer {
               console.error('⚠️ MCP: Auto-save disabled');
             }
 
+            // Store the current chat ID and project info for future updates
+            this.currentChatId = result.chatId;
+            if (!this.currentProjectName) {
+              this.currentProjectName = projectName;
+            }
+            this.saveState();
+
+            // Assign chat to project if we have a project ID
+            if (projectId && result.chatId) {
+              try {
+                await this.v0Client.assignChatToProject(result.chatId, projectId);
+                console.error(`✅ MCP: Chat ${result.chatId} assigned to project ${projectId}`);
+              } catch (error) {
+                console.error('⚠️ MCP: Could not assign chat to project');
+              }
+            }
+            
             return {
               content: [
                 {
@@ -247,28 +404,174 @@ class NuggetwiseMCPServer {
                         `📝 Generated Code:\n\`\`\`tsx\n${result.components?.[0]?.code || 'No code generated'}\n\`\`\`\n\n` +
                         `🌐 Live Preview: ${result.deploymentUrl || 'Not available'}\n` +
                         `💬 V0 Chat: ${result.projectUrl || 'Not available'}${fileInfo}\n\n` +
-                        `🎨 V0 AI has created your component!`,
+                        `🎨 V0 AI has created your component!\n\n` +
+                        `💡 To update this component, simply use:\n` +
+                        `   /nuggetwise-v0/update your changes here`,
                 },
               ],
             };
           }
 
-          case 'v0_continue': {
+          case 'v0_continue':
+          case 'continue':
+          case 'update': {
             const { chatId, message } = args as any;
             
-            const result = await this.v0Client.continueConversation(chatId as string, message as string);
+            // Use stored chat ID if not provided
+            const targetChatId = chatId || this.currentChatId;
+            
+            if (!targetChatId) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `❌ No active project found!\n\n` +
+                          `💡 Please generate a component first using:\n` +
+                          `   /nuggetwise-v0/generate your component description`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+            
+            console.error('🔄 MCP: Updating V0 project...');
+            console.error('📝 MCP: Chat ID:', targetChatId);
+            console.error('💬 MCP: Message:', message);
+            
+            const result = await this.v0Client.continueConversation(targetChatId as string, message as string);
+
+            // Update stored chat ID and save state
+            this.currentChatId = result.chatId;
+            this.saveState();
+
+            // Auto-save updated files using the same logic as generate
+            if (result.files && result.files.length > 0) {
+              await this.v0Client.saveFilesToProject(result.files, {
+                projectName: this.currentProjectName || 'current-project',
+              });
+            }
 
             return {
               content: [
                 {
                   type: 'text',
-                  text: `✅ Conversation continued successfully!\n\n` +
+                  text: `✅ Project updated successfully!\n\n` +
                         `📝 Updated Code:\n\`\`\`tsx\n${result.components?.[0]?.code || 'No code generated'}\n\`\`\`\n\n` +
                         `🌐 Live Preview: ${result.deploymentUrl || 'Not available'}\n` +
-                        `💬 V0 Chat: ${result.projectUrl || 'Not available'}`,
+                        `💬 V0 Chat: ${result.projectUrl || 'Not available'}\n\n` +
+                        `💡 To make more changes, use:\n` +
+                        `   /nuggetwise-v0/update your next changes`,
                 },
               ],
             };
+          }
+
+          case 'list_projects': {
+            try {
+              const projects = await this.v0Client.findProjects();
+              
+              if (projects.length === 0) {
+                return {
+                  content: [
+                    {
+                      type: 'text',
+                      text: `📁 No V0 projects found.\n\n💡 Create your first project with:\n   /nuggetwise-v0/create_project name: "My Project"`,
+                    },
+                  ],
+                };
+              }
+
+              const projectList = projects.map((project, index) => {
+                const isCurrent = project.id === this.currentProjectId;
+                const status = isCurrent ? '🟢 CURRENT' : '⚪';
+                return `${index + 1}. ${status} ${project.name}\n   ID: ${project.id}\n   Created: ${new Date(project.createdAt).toLocaleDateString()}\n   URL: ${project.webUrl}`;
+              }).join('\n\n');
+
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `📁 V0 Projects (${projects.length}):\n\n${projectList}\n\n💡 Switch to a project with:\n   /nuggetwise-v0/switch_project projectId: "project-id"`,
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `❌ Failed to list projects: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+
+          case 'switch_project': {
+            const { projectId } = args as any;
+            
+            try {
+              const project = await this.v0Client.getProjectById(projectId);
+              
+              // Update current project
+              this.currentProjectId = project.id;
+              this.currentProjectName = project.name;
+              this.currentChatId = null; // Reset chat ID when switching projects
+              this.saveState();
+
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `✅ Switched to project: ${project.name}\n\n📁 Project ID: ${project.id}\n🌐 Project URL: ${project.webUrl}\n💬 Chats: ${project.chats.length}\n\n💡 Generate components in this project with:\n   /nuggetwise-v0/generate your component description`,
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `❌ Failed to switch project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+
+          case 'create_project': {
+            const { name, description } = args as any;
+            
+            try {
+              const project = await this.v0Client.createProject(name, description);
+              
+              // Set as current project
+              this.currentProjectId = project.id;
+              this.currentProjectName = project.name;
+              this.currentChatId = null; // Reset chat ID for new project
+              this.saveState();
+
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `✅ Created new V0 project: ${project.name}\n\n📁 Project ID: ${project.id}\n🌐 Project URL: ${project.webUrl}\n\n💡 Start generating components with:\n   /nuggetwise-v0/generate your component description`,
+                  },
+                ],
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `❌ Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
           }
 
           default:

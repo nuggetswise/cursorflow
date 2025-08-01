@@ -65,12 +65,9 @@ export class V0Client {
       console.error('🔧 V0Client: Options:', options);
       
       const result = await this.v0Client.chats.create({
-        system: options.system || 'You are an expert React developer. Generate clean, modern, accessible components.',
         message: prompt,
         modelConfiguration: {
           modelId: options.modelId || 'v0-1.5-sm',
-          imageGenerations: false,
-          thinking: false,
         },
       });
 
@@ -230,44 +227,158 @@ export class V0Client {
     return (tokens / 1000) * 0.02; // $0.02 per 1K tokens
   }
 
-  private async saveFilesToProject(files: any[], options: any = {}): Promise<void> {
+  // V0 Project Management Methods
+  async createProject(name: string, description?: string): Promise<{ id: string; name: string; webUrl: string }> {
     try {
-      // Determine the target directory based on project structure
-      const workspacePath = this.config.cursorWorkspacePath || process.cwd();
-      const targetDir = path.join(workspacePath, 'frontend', 'src', 'components');
-      
-      // Create components directory if it doesn't exist
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
+      if (!this.config.v0ApiKey || !this.v0Client) {
+        throw new Error('V0_API_KEY is required for project creation');
       }
 
-      console.error(`📁 Auto-saving ${files.length} files to: ${targetDir}`);
+      console.error(`🔧 V0Client: Creating project: ${name}`);
+      
+      const result = await this.v0Client.projects.create({
+        name,
+        description: description || `Project created via MCP: ${name}`,
+      });
+
+      console.error(`✅ V0Client: Project created: ${result.name} (ID: ${result.id})`);
+      
+      return {
+        id: result.id,
+        name: result.name,
+        webUrl: result.webUrl,
+      };
+    } catch (error) {
+      console.error('❌ Failed to create V0 project:', error);
+      throw new Error(`Failed to create V0 project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async findProjects(): Promise<Array<{ id: string; name: string; webUrl: string; createdAt: string }>> {
+    try {
+      if (!this.config.v0ApiKey || !this.v0Client) {
+        throw new Error('V0_API_KEY is required for project listing');
+      }
+
+      console.error('🔍 V0Client: Finding projects...');
+      
+      const result = await this.v0Client.projects.find();
+      
+      console.error(`✅ V0Client: Found ${result.data?.length || 0} projects`);
+      
+      return (result.data || []).map((project: any) => ({
+        id: project.id,
+        name: project.name,
+        webUrl: project.webUrl,
+        createdAt: project.createdAt,
+      }));
+    } catch (error) {
+      console.error('❌ Failed to find V0 projects:', error);
+      throw new Error(`Failed to find V0 projects: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async getProjectById(projectId: string): Promise<{ id: string; name: string; webUrl: string; chats: any[] }> {
+    try {
+      if (!this.config.v0ApiKey || !this.v0Client) {
+        throw new Error('V0_API_KEY is required for project retrieval');
+      }
+
+      console.error(`🔍 V0Client: Getting project: ${projectId}`);
+      
+      const result = await this.v0Client.projects.getById({ projectId });
+      
+      console.error(`✅ V0Client: Project found: ${result.name} with ${result.chats?.length || 0} chats`);
+      
+      return {
+        id: result.id,
+        name: result.name,
+        webUrl: result.webUrl,
+        chats: result.chats || [],
+      };
+    } catch (error) {
+      console.error('❌ Failed to get V0 project:', error);
+      throw new Error(`Failed to get V0 project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async assignChatToProject(chatId: string, projectId: string): Promise<void> {
+    try {
+      if (!this.config.v0ApiKey || !this.v0Client) {
+        throw new Error('V0_API_KEY is required for chat assignment');
+      }
+
+      console.error(`🔧 V0Client: Assigning chat ${chatId} to project ${projectId}`);
+      
+      await this.v0Client.projects.assign({
+        projectId,
+        chatId,
+      });
+      
+      console.error(`✅ V0Client: Chat assigned to project successfully`);
+    } catch (error) {
+      console.error('❌ Failed to assign chat to project:', error);
+      throw new Error(`Failed to assign chat to project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async saveFilesToProject(files: any[], options: any = {}): Promise<void> {
+    try {
+      const workspacePath = this.config.cursorWorkspacePath || process.cwd();
+      const projectName = options.projectName || 'project';
+      const projectDir = path.join(workspacePath, 'projects', projectName);
+      
+      console.error(`📁 Auto-saving ${files.length} files to project: ${projectName}`);
+
+      // Create project directory
+      if (!fs.existsSync(projectDir)) {
+        fs.mkdirSync(projectDir, { recursive: true });
+      }
 
       for (const file of files) {
         if (file.content) {
-          // Generate a clean filename
-          let fileName = file.name || 'Component';
+          // Use the original file path from V0
+          let filePath = file.name || 'Component.tsx';
           
-          // Ensure .tsx extension
-          if (!fileName.endsWith('.tsx') && !fileName.endsWith('.ts')) {
-            fileName += '.tsx';
+          // Ensure proper extension
+          if (!filePath.endsWith('.tsx') && !filePath.endsWith('.ts') && !filePath.endsWith('.jsx') && !filePath.endsWith('.js')) {
+            filePath += '.tsx';
           }
           
-          // Clean up filename (remove special characters, ensure PascalCase)
-          fileName = fileName
-            .replace(/[^a-zA-Z0-9.-]/g, '')
-            .replace(/^([a-z])/, (match: string) => match.toUpperCase());
-
-          const filePath = path.join(targetDir, fileName);
+          // Create full path in project directory
+          const fullPath = path.join(projectDir, filePath);
+          
+          // Create directory structure if needed
+          const dirPath = path.dirname(fullPath);
+          if (!fs.existsSync(dirPath)) {
+            fs.mkdirSync(dirPath, { recursive: true });
+          }
+          
+          // Check if file already exists and compare content
+          if (fs.existsSync(fullPath)) {
+            const existingContent = fs.readFileSync(fullPath, 'utf-8');
+            if (existingContent === file.content) {
+              console.error(`⏭️ Skipped (no changes): ${filePath}`);
+              continue;
+            }
+            
+            // Create backup before overwriting
+            const backupPath = fullPath + '.backup.' + Date.now();
+            fs.copyFileSync(fullPath, backupPath);
+            console.error(`📋 Created backup: ${filePath} → ${path.basename(backupPath)}`);
+            console.error(`🔄 Updating existing file: ${filePath}`);
+          } else {
+            console.error(`🆕 Creating new file: ${filePath}`);
+          }
           
           // Write the file
-          fs.writeFileSync(filePath, file.content, 'utf-8');
-          console.error(`✅ Auto-saved: ${fileName}`);
+          fs.writeFileSync(fullPath, file.content, 'utf-8');
+          console.error(`✅ Auto-saved: ${filePath}`);
         }
       }
 
-      console.error(`🎉 Successfully auto-saved ${files.length} component(s) to your project!`);
-      console.error(`📂 Location: ${targetDir}`);
+      console.error(`🎉 Successfully auto-saved ${files.length} file(s) to project: ${projectName}`);
+      console.error(`📂 Location: ${projectDir}`);
 
     } catch (error) {
       console.error('❌ Failed to auto-save files to project:', error);
