@@ -65,6 +65,113 @@ class V0Client {
 }
 ```
 
+### **Setup Wizard Implementation**
+
+#### **API Key Detection & Setup Flow**
+```typescript
+class SetupWizard {
+  async detectMissingApiKey(): Promise<boolean> {
+    // Check if API key is provided via environment variable
+    return !process.env.V0_API_KEY;
+  }
+  
+  async provideSetupInstructions(): Promise<string> {
+    const installationPath = await this.getInstallationPath();
+    
+    return `
+🎉 Welcome to Magic Nuggetwise!
+
+To get started, you need a V0 API key. This only takes 2 minutes!
+
+1. Visit https://v0.dev and sign up (free!)
+2. Go to Settings → API Keys → Create New Key
+3. Copy your key (starts with "v1:")
+4. Configure in Cursor MCP settings (see below)
+5. Try the command again!
+
+📋 MCP Configuration:
+Open Cursor Settings → MCP → Edit nuggetwise-v0 server:
+
+\`\`\`json
+{
+  "mcpServers": {
+    "nuggetwise-v0": {
+      "command": "node",
+      "args": [
+        "${installationPath}"
+      ],
+      "env": {
+        "V0_API_KEY": "v1:YOUR_V0_API_KEY_HERE"
+      }
+    }
+  }
+}
+\`\`\`
+
+💡 **Quick Setup:**
+1. Open Cursor Settings → MCP
+2. Find the "nuggetwise-v0" server
+3. Add this to the "env" section: `"V0_API_KEY": "v1:YOUR_ACTUAL_KEY_HERE"`
+4. Replace `v1:YOUR_ACTUAL_KEY_HERE` with your V0 API key
+5. Save and restart Cursor if needed
+
+Need help? Visit docs.nuggetwise.com/setup
+    `;
+  }
+  
+  async getApiKey(): Promise<string | null> {
+    // Get API key from environment variable
+    return process.env.V0_API_KEY || null;
+  }
+  
+  async getInstallationPath(): Promise<string> {
+    // Detect the actual installation path
+    const possiblePaths = [
+      process.cwd() + '/packages/nw-mcp/dist/mcp-server.js',
+      process.cwd() + '/node_modules/@cursorflow/nuggetwise-v0/dist/mcp-server.js',
+      '/usr/local/lib/node_modules/@cursorflow/nuggetwise-v0/dist/mcp-server.js'
+    ];
+    
+    // Return the first path that exists, or a default
+    for (const path of possiblePaths) {
+      if (require('fs').existsSync(path)) {
+        return path;
+      }
+    }
+    
+    // Fallback to current working directory
+    return process.cwd() + '/packages/nw-mcp/dist/mcp-server.js';
+  }
+  
+  async validateApiKey(key: string): Promise<ValidationResult> {
+    // Validate format and test connectivity
+  }
+  
+  async autoTestSetup(): Promise<TestResult> {
+    // Generate simple component to verify setup
+  }
+}
+```
+
+#### **Integration with MCP Commands**
+```typescript
+// In generate command handler
+async handleGenerate(prompt: string): Promise<string> {
+  if (await this.setupWizard.detectMissingApiKey()) {
+    return await this.setupWizard.provideSetupInstructions();
+  }
+  
+  // Get API key from environment variable
+  const apiKey = await this.setupWizard.getApiKey();
+  if (!apiKey) {
+    return await this.setupWizard.provideSetupInstructions();
+  }
+  
+  // Proceed with normal generation using API key
+  return await this.v0Client.generateComponents(prompt, { apiKey });
+}
+```
+
 #### **Request Format**
 ```typescript
 // Correct V0 API format
@@ -125,6 +232,14 @@ class AgentOrchestrator {
 - [ ] **Improve error handling** - Better V0 API error messages
 - [ ] **Add V0 project validation** - Verify project exists and is accessible
 
+#### **Phase 2.5: Setup Wizard Implementation**
+- [ ] **API Key Detection** - Detect missing V0 API key on first command
+- [ ] **Setup Flow** - Interactive setup through MCP responses
+- [ ] **Dynamic Path Detection** - Auto-detect user's installation path
+- [ ] **Key Validation** - Validate API key format and connectivity
+- [ ] **Auto-Testing** - Test setup with simple component generation
+- [ ] **Error Handling** - User-friendly error messages and guidance
+
 #### **Phase 3: AI Enhancement (Invisible)**
 - [ ] **Integrate Agent Orchestrator** - Add to generate/update commands
 - [ ] **Load system prompts** - From `prompts/nuggetwise/` directory
@@ -166,7 +281,7 @@ class AgentOrchestrator {
 }
 ```
 
-#### **Cursor Deeplink**
+#### **Cursor Deeplink (One-Click Installation)**
 ```json
 {
   "nuggetwise-v0": {
@@ -177,6 +292,53 @@ class AgentOrchestrator {
     ]
   }
 }
+```
+
+**Website Integration:**
+```typescript
+// nuggetwise.com landing page
+const installFlow = {
+  auto: {
+    title: "Add to Cursor",
+    description: "One-click installation",
+    action: "cursor://mcp/add?name=nuggetwise-v0&config=...",
+    button: "Add to Cursor"
+  },
+  manual: {
+    title: "Manual Setup",
+    description: "Advanced users",
+    instructions: "Configure MCP settings manually",
+    config: {
+      "mcpServers": {
+        "nuggetwise-v0": {
+          "command": "node",
+          "args": [
+            "/path/to/nuggetwise-v0/dist/mcp-server.js"
+          ],
+          "env": {
+            "V0_API_KEY": "v1:YOUR_V0_API_KEY_HERE"
+          }
+        }
+      }
+    }
+  }
+};
+```
+
+**Deeplink with Configuration:**
+```typescript
+// Potential deeplink with embedded configuration
+const deeplink = `cursor://mcp/add?name=nuggetwise-v0&config=${encodeURIComponent(JSON.stringify({
+  "mcpServers": {
+    "nuggetwise-v0": {
+      "command": "node",
+      "args": ["/path/to/nuggetwise-v0/dist/mcp-server.js"],
+      "env": {
+        "V0_API_KEY": "v1:YOUR_V0_API_KEY_HERE"
+      }
+    }
+  }
+}))}`;
 ```
 
 ### **Dependencies**
@@ -192,6 +354,12 @@ class AgentOrchestrator {
 - `jest` - Testing framework
 - `@types/node` - Node.js types
 - `eslint` - Code quality
+
+### **Related Documentation**
+
+- **[API Key Management & User Onboarding](API_KEY_MANAGEMENT.md)** - Complete user onboarding experience and V0 API key management
+- **[Frontend Implementation](../FRONTEND_IMPLEMENTATION.md)** - Landing page and user interface
+- **[Backend Implementation](../BACKEND_IMPLEMENTATION.md)** - API services and business logic
 
 ### **Performance Considerations**
 
