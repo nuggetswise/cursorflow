@@ -2,12 +2,13 @@
   "nuggetwise-v0": {
     "command": "node",
     "args": [
-      "${workspaceFolder}/packages/nw-mcp/src/simple-mcp-server.js"
+      "${workspaceFolder}/packages/nw-mcp/dist/mcp-server.js"
     ],
     "env": {
       "NODE_ENV": "development",
       "V0_API_KEY": "${env:V0_API_KEY}",
-      "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
+      "OPENAI_API_KEY": "${env:OPENAI_API_KEY}",
+      "CURSOR_WORKSPACE_PATH": "${workspaceFolder}"
     }
   }
 } 

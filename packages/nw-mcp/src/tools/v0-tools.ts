@@ -39,7 +39,7 @@ export class V0MCPTools {
             },
             saveToWorkspace: {
               type: 'boolean',
-              description: 'Whether to save the generated component to the workspace',
+              description: 'Whether to automatically save the generated component to your project structure (frontend/src/components/)',
               default: true
             },
             fileName: {

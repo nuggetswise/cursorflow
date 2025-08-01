@@ -10,6 +10,8 @@
     "packages/nw-mcp"
   ],
   "scripts": {
+    "generate": "node scripts/generate-component.js",
+    "generate:interactive": "node scripts/generate-interactive.js",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:mcp\"",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",

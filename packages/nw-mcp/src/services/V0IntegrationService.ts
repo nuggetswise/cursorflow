@@ -52,13 +52,23 @@ export class V0IntegrationService {
 
       // Save files to workspace if requested
       if (request.saveToWorkspace && files.length > 0) {
+        // Create a unique directory for this generation
+        const timestamp = Date.now();
+        const dirName = request.fileName 
+          ? `${request.fileName}-${timestamp}`
+          : `v0-generated-${timestamp}`;
+        
+        const dirPath = path.join(this.workspacePath, dirName);
+        
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(dirPath)) {
+          fs.mkdirSync(dirPath, { recursive: true });
+        }
+
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          const fileName = request.fileName 
-            ? `${request.fileName}-${i + 1}-${file.name}`
-            : `v0-generated-${Date.now()}-${i + 1}-${file.name}`;
-          
-          const filePath = path.join(this.workspacePath, fileName);
+          const fileName = file.name || `component-${i + 1}.tsx`;
+          const filePath = path.join(dirPath, fileName);
           
           try {
             fs.writeFileSync(filePath, file.content);
@@ -67,7 +77,7 @@ export class V0IntegrationService {
               content: file.content,
               path: filePath
             });
-            console.log('✅ Saved file:', fileName);
+            console.log('✅ Saved file:', filePath);
           } catch (error) {
             console.error('❌ Failed to save file:', fileName, error);
           }

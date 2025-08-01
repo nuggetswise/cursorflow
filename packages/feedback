@@ -1,0 +1,537 @@
+## 🔍 Engineering Audit & Action Plan
+
+**Context:** We’re stabilizing the `/generate` “Prompt-to-UI” flow in Cursor, backed by the V0 API. Junior devs, please use this as your playbook to **verify current state**, **identify gaps**, and **implement fixes** so we hit the Desired Working State.
+
+---
+
+### 1) Current State Verification
+
+Run through each of these checks in our workspace root and note any failures.
+
+#### 1.1 Folder Structure
+
+```bash
+.
+├── .cursor/
+│   └── mcp.json
+├── .env
+├── scripts/
+│   └── generate-with-v0.js
+└── frontend/
+    ├── components/
+    ├── pages/
+    └── styles/
+```
+
+* **Pass**: `frontend/` contains only V0-style dirs (`components/`, `pages/`, `styles/`)
+* **Fail**: any extra slug-named or timestamped subfolders—remove them.
+
+#### 1.2 Environment File
+
+* `.env` exists at root with a valid `V0_API_KEY=…`
+* `.env` is referenced in `.gitignore`
+* **In-VM check**: in the Cursor Background-Agent terminal run `echo $V0_API_KEY` → should output the key.
+
+#### 1.3 MCP Configuration
+
+Open `.cursor/mcp.json` and confirm:
+
+```jsonc
+{
+  "mcpServers": {
+    "nuggetwise-v0": {
+      "command": "node",
+      "args": ["scripts/generate-with-v0.js"],
+      "env": { "V0_API_KEY": "${env:V0_API_KEY}" }
+    }
+  }
+}
+```
+
+* Exactly **one** server entry (`nuggetwise-v0`)
+* No conflicting servers or broken paths
+
+#### 1.4 Prompt Registration
+
+In your MCP server (or via decorator/JSON), verify a prompt exists:
+
+```ts
+@mcp.prompt()
+export const generatePrompt = {
+  name: 'generate',
+  description: 'Generate React UI code from a natural-language prompt',
+  tool: 'nuggetwise-v0.generate',
+  args: [{ name: 'prompt', type: 'string', required: true }]
+};
+```
+
+* **Cursor MCP logs** (Output → MCP) should read:
+  `… started, 2 tools, 1 prompt`
+* Chat autocomplete: typing `/g` must surface `generate`
+
+---
+
+### 2) Findings & Gaps
+
+Based on the audit above, document any red-flag areas:
+
+| Area                | Symptom                           | Root Cause                         |
+| ------------------- | --------------------------------- | ---------------------------------- |
+| Folder structure    | Random slug folders still present | Old patch not removed              |
+| Snapshot step       | No git-commit before overwrite    | Script missing snapshot logic      |
+| File visibility     | New files not showing in Explorer | Using `path.resolve` outside `cwd` |
+| Prompt missing      | `/generate` not in autocomplete   | Prompt wrapper not deployed        |
+| Env key blank in VM | `echo $V0_API_KEY` returns empty  | Agent VM env not inheriting .env   |
+
+---
+
+### 3) Action Items & Fixes
+
+Tackle each gap in priority order. Assign and check off when done.
+
+#### 3.1 Remove Legacy Folder Logic
+
+* **What to do:** In `generate-with-v0.js`, delete any slug/timestamp folder code.
+* **Desired:**
+
+  ```js
+  const out = path.join(process.cwd(), 'frontend', f.name);
+  ```
+* **Verify:** `tree -L 2 frontend` shows only V0 dirs.
+
+#### 3.2 Add Git Snapshot
+
+* **What to do:** At top of the `main()` function in `generate-with-v0.js`, insert:
+
+  ```js
+  import { execSync } from 'child_process';
+  try {
+    execSync('git add frontend && git commit -m "UI snapshot $(date +%s)"', { stdio: 'ignore' });
+  } catch { /* ignore if clean or not a git repo */ }
+  ```
+* **Verify:** After running `/generate`, `git log -1` message begins with “UI snapshot”.
+
+#### 3.3 Fix Path Resolution
+
+* **What to do:** Ensure every `fs.writeFileSync` uses:
+
+  ```js
+  const out = path.join(process.cwd(), 'frontend', f.name);
+  ```
+* **Verify:** Cursor Explorer instantly shows new files without reload.
+
+#### 3.4 Confirm Prompt Registration
+
+* **What to do:** Add or correct the `@mcp.prompt()` wrapper in your MCP server code.
+* **Verify:** Cursor’s MCP Output reads “1 prompt” and `/generate` appears in chat autocomplete.
+
+#### 3.5 Validate Env Loading
+
+* **What to do:** In `generate-with-v0.js`, at top add:
+
+  ```js
+  import dotenv from 'dotenv';
+  dotenv.config();
+  ```
+* **Verify:** `process.env.V0_API_KEY` is non-empty when script runs inside agent VM.
+
+---
+
+### 4) Smoke-Test & CI Integration
+
+Add or update `scripts/smoke.sh`:
+
+```bash
+#!/usr/bin/env bash
+set -e
+node scripts/generate-with-v0.js "blank screen with red button" | tee /tmp/out
+grep -q "PREVIEW_URL=" /tmp/out
+grep -qs "Button" frontend/components/Button.tsx
+echo "✅ Smoke test passed"
+```
+
+* **Local run:** `bash scripts/smoke.sh` → must pass.
+* **CI job:** include this script as a pre-deploy check.
+
+---
+
+### 5) Timeline & Responsibilities
+
+| Task                                | Owner    | Due      |
+| ----------------------------------- | -------- | -------- |
+| Audit & document current fails      | Junior 1 | Today    |
+| Remove slug logic & fix paths       | Junior 2 | Today    |
+| Implement git snapshot logic        | Junior 2 | Today    |
+| Add dotenv config to script         | Junior 3 | EOD      |
+| Deploy prompt wrapper & restart MCP | Junior 1 | EOD      |
+| Run smoke tests locally & in CI     | Junior 3 | Tomorrow |
+| Demo to PM for sign-off             | Lead Eng | Tomorrow |
+
+---
+
+**Outcome:** when all tasks are complete, any team-member can open Cursor, type `/generate …`, get a snapshot, fresh UI files in the correct structure, and a live preview link—**all without manual work or losing prior edits**.
+
+
+Answers from Senior Dev: 
+
+## Senior Engineer Response to Feedback & Next-Steps Plan
+
+Team, thanks for surface­ing these concerns. Let’s address each area in turn, reconcile the contradictions, and land on a robust, unambiguous approach.
+
+---
+
+### 1) Preventing Overwrites **without** Random Folders
+
+**Challenge:** Writing directly into `frontend/` (Option D) overwrites; unique folders (Option B/C) break “canonical layout.”
+
+**Solution: “Staged Merge”**
+
+1. **Generate into a temporary directory**—`frontend/.v0_tmp/…`—preserving V0’s folder structure.
+
+2. **Three-way merge** into `frontend/`:
+
+   * **Base** = `.v0_last/` (last V0 run snapshot)
+   * **Ours** = current `frontend/` (with user edits)
+   * **Theirs** = `.v0_tmp/` (new V0 output)
+
+3. **Use `git merge-file` or a JS merge lib** to reconcile changes:
+
+   * New files → add
+   * Deleted files → remove
+   * Modified files → auto-merge where possible, otherwise write conflict markers for manual review.
+
+4. **Rotate snapshots**:
+
+   * After merge, rename `.v0_tmp/` → `.v0_last/` for next run.
+
+This preserves canonical structure **and** prevents accidental clobber while surfacing conflicts explicitly.
+
+---
+
+### 2) Git Snapshots & Why They Matter
+
+* **Snapshots alone** (`git commit`) let you roll back *after* an overwrite—but they don’t stop the working directory from losing edits in the moment.
+* **Merge-based approach** avoids destructive writes; snapshots still serve as long-term history and rollback points, but the merge handles immediate conflicts.
+
+---
+
+### 3) Confirming the V0 API Response
+
+By spec, `v0.chats.create()` returns:
+
+```ts
+interface ChatResult {
+  files?: Array<{ name: string; content: string }>;
+  demo: string;
+}
+```
+
+**Verify** via a quick test script:
+
+```js
+import { v0 } from 'v0-sdk';
+(async () => {
+  const chat = await v0.chats.create({ message: 'test button' });
+  console.log('files:', chat.files);
+})();
+```
+
+Run this in isolation—if `chat.files` is `undefined` or empty, we have an API key or plan issue. If it’s populated, we’re clear to build on `chat.files`.
+
+---
+
+### 4) MCP Server vs. Simple Script
+
+Your TypeScript MCP server gives us:
+
+* **Type safety** & compile-time checks
+* **Structured JSON-RPC** handling (prompts, tool args, errors)
+* **Debug logs** under our control
+* **Easy extensibility** to add more tools
+
+A bare shell script loses all of that. We should **retain** the TypeScript MCP server, but **invoke** our generation script as a child process from it. That gives us the best of both worlds:
+
+```ts
+// mcp-server.ts (snippet)
+import { spawnSync } from 'child_process';
+@mcp.tool() async function v0_generate(args) {
+  const result = spawnSync('node', ['scripts/v0-gen.js', args.prompt], { encoding: 'utf8' });
+  if (result.error) throw result.error;
+  const { stdout } = result;
+  // parse JSON lines or a structured output
+  return JSON.parse(stdout);
+}
+```
+
+The MCP server remains the integration point; our script stays focused on V0 calls and file I/O.
+
+---
+
+### 5) Reconciling Contradictory Requirements
+
+| Req.                              | Our Fix                                     |
+| --------------------------------- | ------------------------------------------- |
+| **No extra slug/timestamp dirs**  | Keep canonical `frontend/...` via merge     |
+| **Prevent file overwriting**      | Use three-way merge, not one-way copy       |
+| **Git snapshot before overwrite** | Snapshot “base” into `.v0_last/` for merges |
+
+These three steps create a **safe, repeatable** flow:
+
+1. **Snapshot last V0 output** → `.v0_last/`
+2. **Generate new V0 output** → `.v0_tmp/`
+3. **Merge** `.v0_last/` + `frontend/` + `.v0_tmp/` → `frontend/`
+4. **Rotate** `.v0_tmp/` → `.v0_last/`
+5. **Commit** merge result for history
+
+---
+
+### 6) Actionable Next Steps
+
+| Task                                                       | Owner | ETA      |
+| ---------------------------------------------------------- | ----- | -------- |
+| Add **v0\_tmp/ + .v0\_last/** staging logic                | Dev A | Today    |
+| Implement **three-way merge** (git or lib)                 | Dev B | Today    |
+| Adjust `generate-with-v0.js` to output into `v0_tmp/`      | Dev C | Today    |
+| Update MCP `v0_generate` tool wrapper to call child script | Dev D | EOD      |
+| Write **smoke test** verifying merge correctness           | Dev E | Tomorrow |
+| Demo flow: generate → edit → re-generate (no data loss)    | All   | Tomorrow |
+
+---
+
+### 7) Summary
+
+By moving from **single-folder overwrite** or **random subfolder** approaches to a **merge-based flow**, we satisfy:
+
+* **Canonical V0 layout**
+* **No accidental overwrites**
+* **Preservation of user edits**
+* **Clear, auditable snapshots**
+
+Let’s align on this plan and push the PR today. Once merged, we can close out the last of the juniors’ questions and deliver a seamless `/generate` experience.
+
+
+Feedback 2 from Senior Dev: 
+
+## Senior Engineer’s Detailed Clarifications & Implementation Plan
+
+Team, let’s address each of your questions point-by-point. I’ll assume nothing, define every term, and provide concrete examples and code snippets.
+
+---
+
+### 1) “Canonical V0 Layout” – What exactly is it?
+
+**Definition:** the folder hierarchy and file naming that V0 returns by default when you request a React app.
+For example, if you prompt “blank screen with red button,” V0 typically returns something like:
+
+```
+components/
+  Button.tsx
+pages/
+  index.tsx
+styles/
+  globals.css
+public/
+  favicon.ico
+  logo.png
+```
+
+> **Key points:**
+>
+> * It’s always **relative paths** (no leading `/`).
+> * Files live under those directories, not sprinkled at root.
+> * Other apps might include `utils/`, `hooks/`, or asset folders; we treat whatever V0 returns as “canonical.”
+
+---
+
+### 2) Preventing Overwrites – Three-Way “Staged Merge” in Detail
+
+We need to **write into `frontend/`** exactly that V0 structure **without** losing any manual edits. Here’s how:
+
+#### 2.1 Directory Setup
+
+* **`.v0_last/`** (base): snapshot of the last V0 output
+* **`.v0_tmp/`** (theirs): fresh V0 output this run
+* **`frontend/`** (ours): user’s current workspace + past merges
+
+#### 2.2 Merge Algorithm
+
+1. **Clean `.v0_tmp/`**
+
+   ```js
+   import fs from 'fs-extra';
+   fs.removeSync('.v0_tmp');
+   fs.ensureDirSync('.v0_tmp');
+   ```
+
+2. **Generate into `.v0_tmp/`**
+   In your script, change the write path:
+
+   ```js
+   const out = path.join(process.cwd(), '.v0_tmp', f.name);
+   ```
+
+3. **Three-way merge per file**
+   We’ll use the NPM package [`diff3`](https://www.npmjs.com/package/diff3) (simple, zero deps):
+
+   ```bash
+   pnpm add diff3
+   ```
+
+   ```js
+   import fs from 'fs';
+   import path from 'path';
+   import { mergeLines } from 'diff3';
+
+   const files = new Set([
+     ...listFiles('.v0_last'),
+     ...listFiles('.v0_tmp')
+   ]);
+
+   for (const rel of files) {
+     const basePath   = path.join('.v0_last', rel);
+     const oursPath   = path.join('frontend', rel);
+     const theirsPath = path.join('.v0_tmp', rel);
+
+     const base   = fs.existsSync(basePath)   ? fs.readFileSync(basePath, 'utf8').split('\n') : [];
+     const ours   = fs.existsSync(oursPath)   ? fs.readFileSync(oursPath, 'utf8').split('\n') : [];
+     const theirs = fs.existsSync(theirsPath) ? fs.readFileSync(theirsPath, 'utf8').split('\n') : [];
+
+     const result = mergeLines(ours, base, theirs);
+     const merged = result.result.join('\n');
+
+     if (result.conflict) {
+       // write conflict markers, notify user
+       fs.writeFileSync(oursPath, merged, 'utf8');
+       conflicts.push(rel);
+     } else {
+       fs.ensureDirSync(path.dirname(oursPath));
+       fs.writeFileSync(oursPath, merged, 'utf8');
+     }
+   }
+   ```
+
+4. **Rotate snapshots**
+
+   ```js
+   fs.removeSync('.v0_last');
+   fs.moveSync('.v0_tmp', '.v0_last');
+   ```
+
+5. **Notify user of conflicts**
+   After merging, if `conflicts.length > 0`, the agent replies:
+
+   > ⚠️ Merge conflicts in:
+   > • `components/Button.tsx`
+   > • `pages/index.tsx`
+   > Please resolve these locallly and re-run `/generate` if needed.
+
+---
+
+### 3) Merge Failure & Conflict UX
+
+* **Auto-merge success**: files update, no noise.
+* **On conflict**: conflict markers inserted:
+
+  ```diff
+  <<<<<<< ours
+  your custom change
+  =======
+  V0’s new code
+  >>>>>>> theirs
+  ```
+* **Agent message**: lists conflicted files and suggests manual resolution.
+* **Cursor diff tool**: user opens each file to resolve.
+* **Once resolved**, running `/generate` again works (no base for that file until next run).
+
+---
+
+### 4) V0 API Response Verification & Edge Cases
+
+#### 4.1 Verification Script
+
+Create `scripts/test-v0-response.js`:
+
+```js
+import { v0 } from 'v0-sdk';
+
+(async () => {
+  try {
+    const chat = await v0.chats.create({ message: 'test button' });
+    console.log('demo URL:', chat.demo);
+    if (!Array.isArray(chat.files) || chat.files.length === 0) {
+      console.error('❌ No files returned. Check your plan & key.');
+      process.exit(1);
+    }
+    console.log(`✅ ${chat.files.length} files returned:`, chat.files.map(f => f.name));
+  } catch (err) {
+    console.error('❌ V0 API error:', err.message);
+    process.exit(1);
+  }
+})();
+```
+
+Run:
+
+```bash
+node scripts/test-v0-response.js
+```
+
+* **If it errors** → check `.env`, API key permissions, plan level.
+* **If `chat.files` is empty** → raise a ticket with V0 support.
+
+---
+
+### 5) MCP Server vs. Script
+
+We keep our **TypeScript MCP server** for:
+
+* JSON-RPC compliance
+* Unified error handling
+* Logging & debugging
+* Multi-tool support (UI + PRD + Figma, etc.)
+
+Your generation script (`v0-gen.js`) simply outputs JSON:
+
+```js
+// at end of v0-gen.js
+console.log(JSON.stringify({
+  files: chat.files.map(f => ({ name: f.name, merged: true })),
+  demo: chat.demo,
+  conflicts
+}));
+```
+
+MCP server’s tool wrapper reads that JSON and returns a `ToolResponse` object. No compromise on type safety or extensibility.
+
+---
+
+### 6) Performance & Cleanup
+
+* **Performance**: only merge files returned by V0 (often 5–20 files). `diff3` merging is <10 ms/file.
+* **Cleanup**: on any error, remove both `.v0_tmp/` and `.v0_last/` to avoid stale state.
+* **Concurrency**: before starting, create a lock file `.v0.lock`; if present, abort with “Generation in progress”—prevents overlapping.
+
+---
+
+### 7) Action Items & Responsibilities
+
+| Task                                            | Assignee | Due      |
+| ----------------------------------------------- | -------- | -------- |
+| Implement **.v0\_tmp/ → three-way merge** logic | Dev A    | Today    |
+| Add **lock file** & **cleanup on error**        | Dev B    | Today    |
+| Write & run **test-v0-response.js**             | Dev C    | Today    |
+| Extend MCP server to parse `v0-gen.js` JSON     | Dev D    | EOD      |
+| Update smoke test to validate merge behavior    | Dev E    | Tomorrow |
+| Document “canonical V0 layout” in README        | Dev F    | EOD      |
+
+---
+
+### 8) Summary
+
+* **Canonical layout** = V0’s own returned folders.
+* **No overwrites** = three-way merge using `diff3`.
+* **Safe snapshots** = `.v0_last/` + lock file + cleanup.
+* **Robust MCP** = keep TypeScript server, shell out to script, parse JSON.
+* **Edge-cases** covered: empty API response, merge conflicts, concurrent runs.
+
+Follow these steps, and we’ll have a rock-solid `/generate` flow that preserves user edits, shows conflicts clearly, and stays maintainable. Let’s get it merged by EOD.

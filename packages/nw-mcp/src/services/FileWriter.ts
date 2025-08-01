@@ -28,12 +28,16 @@ export class FileWriter {
     try {
       console.log(`📁 Writing V0 files to workspace: ${this.workspacePath}`);
 
-      // Create frontend directory if it doesn't exist
-      const frontendPath = path.join(this.workspacePath, 'frontend');
-      await fs.ensureDir(frontendPath);
+      // Create a unique directory for this generation
+      const timestamp = Date.now();
+      const dirName = `v0-generated-${timestamp}`;
+      const dirPath = path.join(this.workspacePath, dirName);
+      
+      // Create directory if it doesn't exist
+      await fs.ensureDir(dirPath);
 
-      // Create components directory
-      const componentsPath = path.join(frontendPath, 'components');
+      // Create components directory within the unique directory
+      const componentsPath = path.join(dirPath, 'components');
       await fs.ensureDir(componentsPath);
 
       // Write each component
@@ -49,8 +53,8 @@ export class FileWriter {
         }
       }
 
-      // Create or update main page
-      const mainPagePath = path.join(frontendPath, 'page.tsx');
+      // Create or update main page within the unique directory
+      const mainPagePath = path.join(dirPath, 'page.tsx');
       const mainPageContent = this.generateMainPage(components);
       await fs.writeFile(mainPagePath, mainPageContent, 'utf-8');
       result.files.push(mainPagePath);
@@ -59,7 +63,7 @@ export class FileWriter {
       result.previewUrl = `https://v0.dev/chat/${chatId}`;
       result.success = true;
 
-      console.log(`✅ Successfully wrote ${result.files.length} files`);
+      console.log(`✅ Successfully wrote ${result.files.length} files to ${dirPath}`);
       console.log(`🔗 Preview URL: ${result.previewUrl}`);
 
     } catch (error) {

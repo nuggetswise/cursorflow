@@ -42,18 +42,23 @@ class V0Generator {
       if (files.length > 0) {
         console.log('📝 Writing files to workspace...');
         
+        // Create a unique directory for this generation
+        const timestamp = Date.now();
+        const dirName = options.fileName 
+          ? `${options.fileName}-${timestamp}`
+          : `v0-generated-${timestamp}`;
+        
+        const dirPath = path.join(this.workspacePath, dirName);
+        
+        // Create directory if it doesn't exist
+        await fs.ensureDir(dirPath);
+        
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          const fileName = options.fileName 
-            ? `${options.fileName}-${i + 1}-${file.name}`
-            : `v0-generated-${Date.now()}-${i + 1}-${file.name}`;
-          
-          const filePath = path.join(this.workspacePath, fileName);
+          const fileName = file.name || `component-${i + 1}.tsx`;
+          const filePath = path.join(dirPath, fileName);
           
           try {
-            // Create directory if it doesn't exist
-            await fs.ensureDir(path.dirname(filePath));
-            
             // Write file
             await fs.writeFile(filePath, file.content);
             savedFiles.push({

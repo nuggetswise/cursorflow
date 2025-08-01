@@ -2,6 +2,8 @@ import { V0Response, Component } from '../types';
 import { EnvironmentConfig } from '../types';
 import { createClient } from 'v0-sdk';
 import pRetry from 'p-retry';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export class V0Client {
   private config: EnvironmentConfig;
@@ -10,19 +12,12 @@ export class V0Client {
   constructor(config: EnvironmentConfig) {
     this.config = config;
     
-    console.log('🔧 V0Client config:', {
-      hasV0ApiKey: !!config.v0ApiKey,
-      v0ApiKeyLength: config.v0ApiKey?.length || 0,
-      mode: config.mode
-    });
-    
     if (!config.v0ApiKey) {
       console.warn('⚠️ V0_API_KEY not provided. V0 integration will be limited.');
     } else {
       this.v0Client = createClient({
         apiKey: config.v0ApiKey,
       });
-      console.log('✅ V0 client initialized successfully');
     }
   }
 
@@ -30,8 +25,6 @@ export class V0Client {
     const startTime = Date.now();
 
     try {
-      console.log('🚀 Generating components with V0 SDK...');
-
       if (!this.config.v0ApiKey || !this.v0Client) {
         throw new Error('V0_API_KEY is required for component generation');
       }
@@ -48,8 +41,14 @@ export class V0Client {
         }
       );
 
+      // Auto-save files to project structure if requested
+      if (options.saveToWorkspace !== false && response.files && response.files.length > 0) {
+        await this.saveFilesToProject(response.files, options);
+      }
+
       const duration = Date.now() - startTime;
-      console.log(`✅ V0 generation completed in ${duration}ms`);
+      // Log to stderr to avoid interfering with JSON-RPC stdout
+      console.error(`✅ V0 generation completed in ${duration}ms`);
 
       return response;
 
@@ -61,6 +60,10 @@ export class V0Client {
 
   private async callV0API(prompt: string, options: any = {}): Promise<V0Response> {
     try {
+      console.error('🔍 V0Client: Calling V0 API...');
+      console.error('📝 V0Client: Prompt:', prompt);
+      console.error('🔧 V0Client: Options:', options);
+      
       const result = await this.v0Client.chats.create({
         system: options.system || 'You are an expert React developer. Generate clean, modern, accessible components.',
         message: prompt,
@@ -74,6 +77,25 @@ export class V0Client {
       const chatId = result.id;
       const files = result.latestVersion?.files || [];
       
+      // Debug logging
+      console.error('🔍 V0Client: V0 API Response:', {
+        chatId,
+        hasLatestVersion: !!result.latestVersion,
+        hasFiles: !!result.latestVersion?.files,
+        filesLength: files.length,
+        fileNames: files.map((f: any) => f.name),
+        hasDemoUrl: !!result.latestVersion?.demoUrl,
+        hasUrl: !!result.url
+      });
+      
+      if (files.length > 0) {
+        console.error('📁 V0Client: Files received from V0 API:');
+        files.forEach((file: any, index: number) => {
+          console.error(`  ${index + 1}. ${file.name} (${file.content?.length || 0} chars)`);
+          console.error(`     Content preview: ${file.content?.substring(0, 100)}...`);
+        });
+      }
+      
       // Transform V0 response to our format
       const components: Component[] = files.map((file: any, index: number) => ({
         name: file.name || `Component${index + 1}`,
@@ -84,7 +106,7 @@ export class V0Client {
         milestone: index + 1
       }));
 
-      return {
+      const response = {
         chatId,
         projectUrl: result.url || `https://v0.dev/chat/${chatId}`,
         deploymentUrl: result.latestVersion?.demoUrl || `https://v0.dev/chat/${chatId}`,
@@ -95,6 +117,16 @@ export class V0Client {
           path: file.path
         }))
       };
+
+      console.error('📊 V0Client: Transformed response:', {
+        chatId: response.chatId,
+        componentsLength: response.components.length,
+        filesLength: response.files.length,
+        hasDeploymentUrl: !!response.deploymentUrl,
+        hasProjectUrl: !!response.projectUrl
+      });
+
+      return response;
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -112,8 +144,6 @@ export class V0Client {
 
   async continueConversation(chatId: string, message: string): Promise<V0Response> {
     try {
-      console.log('🔄 Continuing V0 conversation...');
-      
       const result = await this.v0Client.chats.sendMessage({
         chatId,
         message
@@ -150,8 +180,6 @@ export class V0Client {
 
   async exportProject(chatId: string): Promise<{ files: any[]; zipUrl: string }> {
     try {
-      console.log(`📦 Exporting project ${chatId}...`);
-
       if (!this.config.v0ApiKey || !this.v0Client) {
         throw new Error('V0_API_KEY is required for project export');
       }
@@ -200,5 +228,50 @@ export class V0Client {
     // Use actual V0.dev pricing when available
     // For now, use estimated pricing based on token count
     return (tokens / 1000) * 0.02; // $0.02 per 1K tokens
+  }
+
+  private async saveFilesToProject(files: any[], options: any = {}): Promise<void> {
+    try {
+      // Determine the target directory based on project structure
+      const workspacePath = this.config.cursorWorkspacePath || process.cwd();
+      const targetDir = path.join(workspacePath, 'frontend', 'src', 'components');
+      
+      // Create components directory if it doesn't exist
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+
+      console.error(`📁 Auto-saving ${files.length} files to: ${targetDir}`);
+
+      for (const file of files) {
+        if (file.content) {
+          // Generate a clean filename
+          let fileName = file.name || 'Component';
+          
+          // Ensure .tsx extension
+          if (!fileName.endsWith('.tsx') && !fileName.endsWith('.ts')) {
+            fileName += '.tsx';
+          }
+          
+          // Clean up filename (remove special characters, ensure PascalCase)
+          fileName = fileName
+            .replace(/[^a-zA-Z0-9.-]/g, '')
+            .replace(/^([a-z])/, (match: string) => match.toUpperCase());
+
+          const filePath = path.join(targetDir, fileName);
+          
+          // Write the file
+          fs.writeFileSync(filePath, file.content, 'utf-8');
+          console.error(`✅ Auto-saved: ${fileName}`);
+        }
+      }
+
+      console.error(`🎉 Successfully auto-saved ${files.length} component(s) to your project!`);
+      console.error(`📂 Location: ${targetDir}`);
+
+    } catch (error) {
+      console.error('❌ Failed to auto-save files to project:', error);
+      // Don't throw error to avoid breaking the main generation flow
+    }
   }
 } 
