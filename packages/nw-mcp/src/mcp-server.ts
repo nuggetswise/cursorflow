@@ -10,6 +10,7 @@ import {
   CallToolRequest,
 } from '@modelcontextprotocol/sdk/types.js';
 import { V0Client } from './services/V0Client.js';
+import { SetupWizard } from './services/SetupWizard.js';
 import { EnvironmentConfig } from './types/index.js';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
@@ -81,6 +82,7 @@ class FileWriter {
 class NuggetwiseMCPServer {
   private server: Server;
   private v0Client: V0Client;
+  private setupWizard: SetupWizard;
   private fileWriter: FileWriter;
   private currentChatId: string | null = null;
   private currentProjectName: string | null = null;
@@ -94,6 +96,7 @@ class NuggetwiseMCPServer {
     });
 
     this.v0Client = new V0Client(config);
+    this.setupWizard = new SetupWizard(config);
     this.fileWriter = new FileWriter(config.cursorWorkspacePath);
     this.stateFile = path.join(config.cursorWorkspacePath, '.mcp-state.json');
     
@@ -197,6 +200,14 @@ class NuggetwiseMCPServer {
               required: ['chatId', 'message'],
             },
           },
+          {
+            name: 'status',
+            description: 'Check V0 API key status and connection',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+            },
+          },
         ],
       };
     });
@@ -263,6 +274,11 @@ class NuggetwiseMCPServer {
                 required: false
               }
             ]
+          },
+          {
+            name: 'status',
+            description: 'Check V0 API key status and connection',
+            arguments: []
           }
         ]
       };
@@ -306,6 +322,16 @@ class NuggetwiseMCPServer {
         };
       }
       
+      if (name === 'status') {
+        return {
+          prompt: {
+            name: 'status',
+            description: 'Check V0 API key status and connection',
+            arguments: []
+          }
+        };
+      }
+      
       throw new Error(`Unknown prompt: ${name}`);
     });
 
@@ -321,6 +347,37 @@ class NuggetwiseMCPServer {
             console.error('🚀 MCP: Starting V0 generation...');
             console.error('📝 MCP: Prompt:', prompt);
             console.error('🔧 MCP: Options:', { modelId, saveToWorkspace, fileName, projectName });
+
+            // Check for API key and provide setup instructions if missing
+            if (await this.setupWizard.detectMissingApiKey()) {
+              const setupInstructions = await this.setupWizard.provideSetupInstructions();
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: setupInstructions,
+                  },
+                ],
+                isError: true,
+              };
+            }
+
+            // Validate API key
+            const apiKey = await this.setupWizard.getApiKey();
+            if (apiKey) {
+              const validation = await this.setupWizard.validateApiKey(apiKey);
+              if (!validation.isValid) {
+                return {
+                  content: [
+                    {
+                      type: 'text',
+                      text: `❌ ${validation.error}\n\n💡 Please check your V0 API key configuration and try again.`,
+                    },
+                  ],
+                  isError: true,
+                };
+              }
+            }
 
             // Create or find V0 project
             let projectId = this.currentProjectId;
@@ -416,6 +473,37 @@ class NuggetwiseMCPServer {
           case 'continue':
           case 'update': {
             const { chatId, message } = args as any;
+            
+            // Check for API key and provide setup instructions if missing
+            if (await this.setupWizard.detectMissingApiKey()) {
+              const setupInstructions = await this.setupWizard.provideSetupInstructions();
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: setupInstructions,
+                  },
+                ],
+                isError: true,
+              };
+            }
+
+            // Validate API key
+            const apiKey = await this.setupWizard.getApiKey();
+            if (apiKey) {
+              const validation = await this.setupWizard.validateApiKey(apiKey);
+              if (!validation.isValid) {
+                return {
+                  content: [
+                    {
+                      type: 'text',
+                      text: `❌ ${validation.error}\n\n💡 Please check your V0 API key configuration and try again.`,
+                    },
+                  ],
+                  isError: true,
+                };
+              }
+            }
             
             // Use stored chat ID if not provided
             const targetChatId = chatId || this.currentChatId;
@@ -567,6 +655,57 @@ class NuggetwiseMCPServer {
                   {
                     type: 'text',
                     text: `❌ Failed to create project: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+
+          case 'status': {
+            try {
+              const statusInfo = await this.setupWizard.getStatusInfo();
+              
+              let statusText = '';
+              let isError = false;
+              
+              switch (statusInfo.apiKeyStatus) {
+                case 'connected':
+                  statusText = `🔑 API Key: Connected ✅\n\n`;
+                  if (statusInfo.creditsRemaining !== undefined) {
+                    statusText += `💰 Credits Remaining: ${statusInfo.creditsRemaining}\n\n`;
+                  }
+                  statusText += `🎉 You're all set! Try generating a component:\n   /nuggetwise-v0/generate create a button`;
+                  break;
+                  
+                case 'disconnected':
+                  statusText = `🔑 API Key: Not Connected ❌\n\n`;
+                  const setupInstructions = await this.setupWizard.provideSetupInstructions();
+                  statusText += setupInstructions;
+                  isError = true;
+                  break;
+                  
+                case 'invalid':
+                  statusText = `🔑 API Key: Invalid ❌\n\n❌ ${statusInfo.error}\n\n💡 Please check your V0 API key configuration.`;
+                  isError = true;
+                  break;
+              }
+              
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: statusText,
+                  },
+                ],
+                isError,
+              };
+            } catch (error) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `❌ Status check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
                   },
                 ],
                 isError: true,

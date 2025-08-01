@@ -86,22 +86,19 @@ To get started, you need a V0 API key. This only takes 2 minutes!
 1. Visit https://v0.dev and sign up (free!)
 2. Go to Settings → API Keys → Create New Key
 3. Copy your key (starts with "v1:")
-4. Configure in Cursor MCP settings (see below)
+4. Add it to your MCP configuration (see below)
 5. Try the command again!
 
-📋 MCP Configuration:
-Open Cursor Settings → MCP → Edit nuggetwise-v0 server:
-
+**Example:**
+Your nuggetwise-v0 server should look like this:
 \`\`\`json
 {
   "mcpServers": {
     "nuggetwise-v0": {
       "command": "node",
-      "args": [
-        "${installationPath}"
-      ],
+      "args": ["/path/to/mcp-server.js"],
       "env": {
-        "V0_API_KEY": "v1:YOUR_V0_API_KEY_HERE"
+        "V0_API_KEY": "v1:your-actual-v0-api-key-here"
       }
     }
   }
@@ -114,6 +111,12 @@ Open Cursor Settings → MCP → Edit nuggetwise-v0 server:
 3. Add this to the "env" section: `"V0_API_KEY": "v1:YOUR_ACTUAL_KEY_HERE"`
 4. Replace `v1:YOUR_ACTUAL_KEY_HERE` with your V0 API key
 5. Save and restart Cursor if needed
+
+**Even Simpler:**
+Just add this line to your existing nuggetwise-v0 server's "env" section:
+```json
+"V0_API_KEY": "v1:your-actual-v0-api-key-here"
+```
 
 Need help? Visit docs.nuggetwise.com/setup
     `;
@@ -235,10 +238,18 @@ class AgentOrchestrator {
 #### **Phase 2.5: Setup Wizard Implementation**
 - [ ] **API Key Detection** - Detect missing V0 API key on first command
 - [ ] **Setup Flow** - Interactive setup through MCP responses
-- [ ] **Dynamic Path Detection** - Auto-detect user's installation path
-- [ ] **Key Validation** - Validate API key format and connectivity
-- [ ] **Auto-Testing** - Test setup with simple component generation
+- [ ] **Format Validation** - Validate API key format (v1: prefix)
 - [ ] **Error Handling** - User-friendly error messages and guidance
+- [ ] **Success Confirmation** - Confirm successful setup with status message
+
+**Note**: MCP servers cannot modify their own configuration files. The setup wizard provides guidance but requires manual user action to update `~/.cursor/mcp.json`.
+
+**Current Status**: 
+- ✅ **Basic MCP server** - Working with manual API key setup
+- ✅ **V0 integration** - Generating components and updating projects
+- ✅ **File handling** - Auto-saving files to workspace
+- ❌ **Setup wizard** - Not implemented yet (Phase 2.5)
+- ❌ **AI agents** - Not implemented yet (Phase 3)
 
 #### **Phase 3: AI Enhancement (Invisible)**
 - [ ] **Integrate Agent Orchestrator** - Add to generate/update commands
