@@ -6,14 +6,22 @@ A comprehensive platform that combines Cursor IDE with Vercel's v0 Platform API 
 
 ### **Install V0 MCP Server in Cursor (One-Click)**
 
-[Add V0 MCP Server to Cursor](cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=eyJudWdnZXR3aXNlLXYwIjp7ImNvbW1hbmQiOiJub2RlIiwiYXJncyI6WyIke3dvcmtzcGFjZUZvbGRlcn0vcGFja2FnZXMvbnctbWNwL3NyYy9zaW1wbGUtbWNwLXNlcnZlci5qcyJdLCJlbnYiOnsiTk9ERV9FTlYiOiJkZXZlbG9wbWVudCIsIlYwX0FQSV9LRVkiOiIke2VudjpWMF9BUElfS0VZfSIsIk9QRU5BSV9BUElfS0VZIjoiJHtlbnY6T1BFTkFJX0FQSV9LRVl9In19fQ==)
+[![Add to Cursor](https://img.shields.io/badge/Add_to_Cursor-Install_V0_MCP_Server-blue?style=for-the-badge&logo=cursor)](cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=ewogICJudWdnZXR3aXNlLXYwIjogewogICAgImNvbW1hbmQiOiAibm9kZSIsCiAgICAiYXJncyI6IFsKICAgICAgIiR7d29ya3NwYWNlRm9sZGVyfS9wYWNrYWdlcy9udy1tY3AvZGlzdC9tY3Atc2VydmVyLmpzIgogICAgXSwKICAgICJlbnYiOiB7CiAgICAgICJOT0RFX0VOViI6ICJkZXZlbG9wbWVudCIsCiAgICAgICJWMF9BUElfS0VZIjogIiR7ZW52OlYwX0FQSV9LRVl9IiwKICAgICAgIk9QRU5BSV9BUElfS0VZIjogIiR7ZW52Ok9QRU5BSV9BUElfS0VZfSIKICAgIH0KICB9Cn0=)
 
 **After installation, use in Cursor Chat:**
 ```
 @nuggetwise-v0 v0_generate "Create a login form with email and password"
 ```
 
-📖 **[Full V0 MCP Setup Guide](V0_MCP_CURSOR_SETUP.md)**
+📖 **[Full V0 MCP Setup Guide](implementation-plan/dev-implementation/V0_INTEGRATION_LANDING.md)**
+
+## 🛡️ **Badges**
+
+![MCP Server](https://img.shields.io/badge/MCP_Server-V0_Integration-green?style=for-the-badge)
+![V0 Integration](https://img.shields.io/badge/V0_Integration-AI_Generated_UI-orange?style=for-the-badge)
+![Cursor IDE](https://img.shields.io/badge/Cursor_IDE-Native_Integration-purple?style=for-the-badge)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)
 
 ## 🏗️ Project Structure
 

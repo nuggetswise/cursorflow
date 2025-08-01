@@ -2,7 +2,9 @@
 
 ## 🔗 **Integration Overview**
 
-This guide provides comprehensive instructions for integrating CursorFlow's various components with **MCP (Model Context Protocol) as the primary approach**. The integration focuses on seamless Cursor IDE experience through MCP commands, with CLI and extension options as secondary interfaces.
+This guide provides comprehensive instructions for integrating CursorFlow's various components with **MCP (Model Context Protocol) as the primary approach**. The integration focuses on seamless Cursor IDE experience through MCP commands.
+
+> **Note**: CLI option documentation is available in the `../cli-option/` folder for secondary implementation details.
 
 ---
 
@@ -733,129 +735,7 @@ spec:
 
 ---
 
----
-
-## **🚫 CLI & Extension Implementation (Commented Out - Only When Required)**
-
-> **Note**: The following sections are commented out as CLI and VS Code extension are optional future enhancements. The primary focus is MCP integration within Cursor IDE.
-
-<!--
-## **📦 Secondary Platform Integration (CLI & Extension)**
-
-> **Note**: While MCP integration provides the primary and most seamless experience within Cursor IDE, CLI and VS Code extension options are available for users who prefer automation or work in different environments.
-
-### **NPX CLI Integration (Secondary Option)**
-
-#### **1. Create NPX CLI Package**
-```bash
-cd packages/nuggetwise-cli
-npm init
-```
-
-#### **2. Configure CLI Package**
-```json
-{
-  "name": "nuggetwise-v0-init",
-  "bin": {
-    "nuggetwise-v0-init": "./bin/nuggetwise-v0-init.js"
-  },
-  "files": [
-    "bin/",
-    "templates/"
-  ]
-}
-```
-
-#### **3. Implement CLI Script**
-```javascript
-#!/usr/bin/env node
-// bin/nuggetwise-v0-init.js
-
-const fs = require('fs-extra');
-const path = require('path');
-
-async function main() {
-  const projectName = process.argv[2] || 'nuggetwise-v0-project';
-  const targetDir = path.resolve(process.cwd(), projectName);
-  
-  // Create project directory
-  await fs.ensureDir(targetDir);
-  
-  // Copy template files
-  await fs.copy(path.join(__dirname, '../templates'), targetDir);
-  
-  // Install dependencies
-  console.log('Installing dependencies...');
-  // npm install logic
-  
-  console.log(`✅ Project created: ${projectName}`);
-  console.log('Next steps:');
-  console.log(`  cd ${projectName}`);
-  console.log('  cursor open .');
-  console.log('  Type: "Build me a todo app"');
-}
-```
-
-### **VS Code Extension Integration (Secondary Option)**
-
-#### **1. Create Extension Project**
-```bash
-cd packages/vscode-extension
-yo code
-```
-
-#### **2. Configure Extension**
-```json
-{
-  "name": "nuggetwise-v0-generator",
-  "displayName": "Nuggetwise V0 Generator",
-  "description": "Generate UI components with V0",
-  "version": "1.0.0",
-  "engines": {
-    "vscode": "^1.60.0"
-  },
-  "categories": ["Other"],
-  "activationEvents": ["onCommand:nuggetwise.generateUI"],
-  "main": "./out/extension.js",
-  "contributes": {
-    "commands": [
-      {
-        "command": "nuggetwise.generateUI",
-        "title": "Generate UI with V0"
-      }
-    ]
-  }
-}
-```
-
-#### **3. Implement Extension**
-```typescript
-// src/extension.ts
-import * as vscode from 'vscode';
-import { V0Generator } from './V0Generator';
-
-export function activate(context: vscode.ExtensionContext) {
-  const generator = new V0Generator();
-  
-  let disposable = vscode.commands.registerCommand('nuggetwise.generateUI', async () => {
-    const prompt = await vscode.window.showInputBox({
-      prompt: 'Describe the UI you want to generate'
-    });
-    
-    if (prompt) {
-      try {
-        const result = await generator.generateUI(prompt);
-        vscode.window.showInformationMessage(`Generated ${result.files.length} files!`);
-      } catch (error) {
-        vscode.window.showErrorMessage(`Generation failed: ${error.message}`);
-      }
-    }
-  });
-  
-  context.subscriptions.push(disposable);
-}
-```
--->
+> **CLI Option Documentation**: For CLI-specific integration details, see [`../cli-option/CLI_INTEGRATION.md`](../cli-option/CLI_INTEGRATION.md).
 
 ---
 

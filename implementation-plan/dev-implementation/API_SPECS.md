@@ -2,7 +2,9 @@
 
 ## 🔌 API Overview
 
-This document outlines all API endpoints, integrations, and data structures for the **MCP-First CursorFlow Platform** - with **MCP (Model Context Protocol) integration as the primary approach** and **CLI option as secondary**.
+This document outlines all API endpoints, integrations, and data structures for the **MCP-First CursorFlow Platform** - with **MCP (Model Context Protocol) integration as the primary approach**.
+
+> **Note**: CLI option documentation is available in the `../cli-option/` folder for secondary implementation details.
 
 ## 🌐 External API Integrations
 
@@ -32,7 +34,7 @@ const DEFAULT_MODELS = {
 ```typescript
 // Endpoint: POST /api/openai/generate-prd
 interface GeneratePRDRequest {
-  approach: 'mcp-integration' | 'cli-option';
+  approach: 'mcp-integration';
   description: string;
   template?: 'basic' | 'detailed' | 'technical' | 'user-story';
   requirements?: string[];
@@ -47,14 +49,13 @@ interface GeneratePRDResponse {
     id: string;
     title: string;
     description: string;
-    approach: 'mcp-integration' | 'cli-option';
+    approach: 'mcp-integration';
     provider: string;
     generationTime: number;
     features: Feature[];
     userStories: UserStory[];
     technicalRequirements: TechnicalRequirement[];
     orchestrationData?: any; // For MCP integration mode
-    rawResponse?: string; // For CLI option mode
   };
   success: boolean;
   error?: string;
@@ -218,7 +219,7 @@ interface OrchestrationResponse {
 ```typescript
 // Endpoint: POST /api/v0/create-chat
 interface CreateV0ChatRequest {
-  approach: 'mcp-integration' | 'cli-option';
+  approach: 'mcp-integration';
   prompt: string;
   components?: Array<{
     name: string;
@@ -292,7 +293,7 @@ interface MCPBuildResponse {
 interface CreateSubscriptionRequest {
   customerId: string;
   priceId: string;
-  plan: 'mcp-integration' | 'cli-option' | 'multi-platform';
+  plan: 'mcp-integration' | 'multi-platform';
   metadata?: Record<string, string>;
 }
 
@@ -303,7 +304,6 @@ interface CreateSubscriptionResponse {
   plan: string;
   features: {
     mcpIntegration: boolean;
-    cliOption: boolean;
     apiCalls: number;
     prdsPerMonth: number;
   };
@@ -602,7 +602,7 @@ interface User {
   };
   preferences: {
     defaultProvider: 'openai' | 'gemini' | 'groq' | 'anthropic';
-    defaultApproach: 'mcp-integration' | 'cli-option';
+    defaultApproach: 'mcp-integration';
     notifications: boolean;
   };
   createdAt: Date;
@@ -618,7 +618,7 @@ interface JWTPayload {
   userId: string;
   email: string;
   plan: string;
-  approach: 'mcp-integration' | 'cli-option' | 'multi-platform';
+  approach: 'mcp-integration' | 'multi-platform';
   provider: 'openai' | 'gemini' | 'groq' | 'anthropic';
   iat: number;
   exp: number;
@@ -628,9 +628,10 @@ interface JWTPayload {
 ### **API Rate Limiting (MCP-First)**
 - **Free Plan**: 50 requests/hour (MCP Integration only)
 - **MCP Integration Plan**: 500 requests/hour
-- **CLI Option Plan**: 1000 requests/hour
 - **Multi-Platform Plan**: 2000 requests/hour
 - **Enterprise Plan**: 10000 requests/hour
+
+> **Note**: CLI option rate limiting is documented in `../cli-option/CLI_SPECS.md`
 
 ### **CORS Configuration (Enhanced)**
 ```typescript
@@ -657,7 +658,7 @@ interface ErrorResponse {
     code: string;
     message: string;
     details?: any;
-    approach?: 'mcp-integration' | 'cli-option';
+    approach?: 'mcp-integration';
     provider?: string;
   };
   timestamp: Date;
@@ -701,4 +702,8 @@ interface ErrorResponse {
 
 ---
 
-**Next Steps**: Review [`FRONTEND_SPECS.md`](./FRONTEND_SPECS.md) for frontend implementation details and [`BACKEND_SPECS.md`](./BACKEND_SPECS.md) for backend service specifications. 
+**Next Steps**: Review [`FRONTEND_SPECS.md`](./FRONTEND_SPECS.md) for frontend implementation details and [`BACKEND_SPECS.md`](./BACKEND_SPECS.md) for backend service specifications.
+
+---
+
+> **CLI Option Documentation**: For CLI-specific API specifications, see [`../cli-option/CLI_SPECS.md`](../cli-option/CLI_SPECS.md). 

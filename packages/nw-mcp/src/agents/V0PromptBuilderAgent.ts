@@ -279,7 +279,7 @@ Generate a comprehensive v0.dev prompt that uses Base44 techniques like "It shou
   }
 
   private getInteractionDescription(interactions: { animations?: string[]; transitions?: string[]; hoverEffects?: string[] }): string {
-    const interactionPhrases = [];
+    const interactionPhrases: string[] = [];
     
     if (interactions.animations && interactions.animations.length > 0) {
       interactionPhrases.push(`"Add smooth animations for ${interactions.animations.join(', ')}"`);

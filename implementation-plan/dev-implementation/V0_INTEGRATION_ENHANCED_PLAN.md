@@ -2,7 +2,9 @@
 
 ## 🎯 **Overview**
 
-This enhanced implementation plan covers the complete integration of V0's AI-powered UI generation with **MCP (Model Context Protocol) as the primary approach**. This creates a seamless "prompt-to-UI" ecosystem within Cursor IDE with intelligent MCP commands. CLI and extension options are available as secondary options for power users and automation.
+This enhanced implementation plan covers the complete integration of V0's AI-powered UI generation with **MCP (Model Context Protocol) as the primary approach**. This creates a seamless "prompt-to-UI" ecosystem within Cursor IDE with intelligent MCP commands.
+
+> **Note**: CLI option documentation is available in the `../cli-option/` folder for secondary implementation details.
 
 ---
 
@@ -60,7 +62,7 @@ curl -X POST https://api.v0.dev/v1/chat \
 
 ### **🔄 Fallback Strategy**
 - **Primary**: MCP integration in Cursor IDE
-- **Secondary**: CLI option for power users
+- **Secondary**: Web interface for advanced features
 - **Tertiary**: Web interface for advanced V0 features
 - **Emergency**: Manual V0 web interface usage
 
@@ -304,7 +306,7 @@ curl -X POST https://api.v0.dev/v1/chat \
 ### **✅ 7.3 Unified Workflow**
 - [ ] Create seamless approach switching
   - [ ] MCP Integration Mode (primary)
-  - [ ] CLI Option Mode (secondary)
+  - [ ] Web Interface Mode (secondary)
   - [ ] **Mode transition UI** (commented out - handled via MCP commands)
   - [ ] **Feature comparison display** (commented out - handled via MCP commands)
 - [ ] Implement upgrade prompts via MCP commands
@@ -409,7 +411,7 @@ curl -X POST https://api.v0.dev/v1/chat \
 - [ ] **MCP Integration**: >1000 Cursor IDE users in first month
 - [ ] **NEW**: **Extension Installs**: >500 VS Code marketplace installs (optional future)
 - [ ] **NEW**: **Cross-Platform Usage**: >30% users try multiple platforms (optional future)
-- [ ] **NEW**: **Template Adoption**: >80% CLI users complete setup (optional future)
+- [ ] **NEW**: **Template Adoption**: >80% MCP users complete setup (optional future)
 
 ### **Cost Efficiency**
 - [ ] **Cost per Generation**: <$2 per generation
@@ -525,7 +527,7 @@ vsce publish
 - [ ] **Development Environment**: Confirm Node.js and pnpm are available
 
 ### **Risk Mitigation Plan**
-- [ ] **Primary Fallback**: CLI option ready for power users
+- [ ] **Primary Fallback**: Web interface ready for advanced features
 - [ ] **Secondary Fallback**: Web interface for advanced V0 features
 - [ ] **Emergency Fallback**: Manual V0 web interface usage
 - [ ] **Documentation**: Clear instructions for each fallback option
@@ -599,89 +601,8 @@ vsce publish
 
 ---
 
----
-
-## **🛠️ CLI & Extension Implementation (Secondary Options)**
-
-> **Note**: CLI and VS Code extension are secondary options for power users and automation. They provide fallback functionality when MCP integration has limitations.
-
-## **📦 Phase X: NPX CLI Package Development (Secondary Option)**
-
-### **✅ X.1 CLI Package Structure**
-- [ ] Create `packages/nuggetwise-cli/` directory
-- [ ] Initialize `package.json` with bin entry
-  ```json
-  {
-    "name": "nuggetwise-init",
-    "bin": {
-      "nuggetwise-init": "./bin/nuggetwise-init.js"
-    }
-  }
-  ```
-- [ ] Set up TypeScript configuration
-- [ ] Add CLI dependencies
-
-### **✅ X.2 CLI Implementation**
-- [ ] Create `bin/nuggetwise-init.js`
-  - [ ] Parse command line arguments
-  - [ ] Create project directory
-  - [ ] Copy template files
-  - [ ] Run `npm install`
-  - [ ] Display next steps
-- [ ] Add template files to `templates/` directory
-- [ ] Implement error handling
-
-### **✅ X.3 Template Management**
-- [ ] Create comprehensive template package
-  - [ ] `.env.example` with V0 configuration
-  - [ ] `package.json` with dependencies
-  - [ ] `scripts/generate-with-v0.js`
-  - [ ] `.cursor/` configuration
-  - [ ] `README.md` with setup instructions
-- [ ] Add template validation
-- [ ] Create template versioning system
-
-### **✅ X.4 CLI Testing & Publishing**
-- [ ] Test CLI locally
-- [ ] Test template installation
-- [ ] Validate generated project structure
-- [ ] Prepare for npm publishing
-- [ ] Create CLI documentation
+> **CLI Option Documentation**: For CLI-specific implementation details, see [`../cli-option/CLI_INTEGRATION.md`](../cli-option/CLI_INTEGRATION.md).
 
 ---
 
-## **🔌 Phase Y: VS Code Extension Development (Optional Future)**
-
-### **✅ Y.1 Extension Scaffolding**
-- [ ] Use `yo code` to scaffold TypeScript extension
-- [ ] Set up `packages/vscode-extension/` structure
-- [ ] Configure `package.json` for VS Code extension
-- [ ] Set up build and development scripts
-
-### **✅ Y.2 Extension Implementation**
-- [ ] Create `nuggetwise.generateUI` command
-  - [ ] Implement `showInputBox` for prompt input
-  - [ ] Integrate core generation logic
-  - [ ] Handle file writing to workspace
-  - [ ] Display preview URL with "Open Preview" button
-- [ ] Add command registration
-- [ ] Implement error handling
-
-### **✅ Y.3 Extension UI & UX**
-- [ ] Design extension icon and branding
-- [ ] Create extension README
-- [ ] Add activation events
-- [ ] Implement progress indicators
-- [ ] Add configuration options
-- [ ] Create user onboarding flow
-
-### **✅ Y.4 Extension Testing & Publishing**
-- [ ] Test extension in Extension Development Host
-- [ ] Test with different VS Code versions
-- [ ] Validate file writing permissions
-- [ ] Test error scenarios
-- [ ] Package with `vsce`
-- [ ] Prepare for marketplace submission
----
-
-*This enhanced implementation plan ensures comprehensive integration of V0's AI-powered UI generation with MCP as the primary approach, creating a seamless development experience within Cursor IDE. CLI and extension options are available as secondary options for power users and automation. The plan includes reality checks and validation steps to account for Cursor IDE limitations.* 
+*This enhanced implementation plan ensures comprehensive integration of V0's AI-powered UI generation with MCP as the primary approach, creating a seamless development experience within Cursor IDE. The plan includes reality checks and validation steps to account for Cursor IDE limitations.* 

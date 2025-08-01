@@ -2,62 +2,110 @@ name: Update MCP Install Link
 
 on:
   push:
+    branches: [main, develop]
     paths:
-      - 'mcp-config.json'
-      - 'packages/nw-mcp/src/simple-mcp-server.js'
+      - 'packages/nw-mcp/**'
+      - 'scripts/generate-mcp-link.js'
+      - '.github/workflows/update-mcp-link.yml'
   workflow_dispatch:
+    inputs:
+      force_update:
+        description: 'Force update even if no changes detected'
+        required: false
+        default: 'false'
 
 jobs:
-  update-link:
+  update-mcp-link:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
       
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
+        cache: 'npm'
         
-    - name: Generate MCP Install Link
-      id: generate-link
+    - name: Install dependencies
       run: |
-        # Read the MCP configuration
-        CONFIG=$(cat mcp-config.json)
+        cd packages/nw-mcp
+        npm install
         
-        # Convert to base64
-        BASE64_CONFIG=$(echo "$CONFIG" | base64 -w 0)
-        
-        # Generate the install link
-        INSTALL_LINK="cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=$BASE64_CONFIG"
-        
-        # Output the link for use in other steps
-        echo "install_link=$INSTALL_LINK" >> $GITHUB_OUTPUT
-        echo "base64_config=$BASE64_CONFIG" >> $GITHUB_OUTPUT
-        
-        echo "Generated MCP Install Link:"
-        echo "$INSTALL_LINK"
-        
-    - name: Update README with new link
+    - name: Build MCP server
       run: |
-        # Replace the install link in README.md
-        sed -i "s|cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=[A-Za-z0-9+/=]*|${{ steps.generate-link.outputs.install_link }}|g" README.md
+        cd packages/nw-mcp
+        npm run build
         
-    - name: Update V0 Integration Landing Page
+    - name: Generate MCP install link
       run: |
-        # Replace the install link in V0_INTEGRATION_LANDING.md
-        sed -i "s|cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=[A-Za-z0-9+/=]*|${{ steps.generate-link.outputs.install_link }}|g" V0_INTEGRATION_LANDING.md
+        node scripts/generate-mcp-link.js
         
-    - name: Update V0 MCP Setup Guide
+    - name: Check for changes
+      id: check-changes
       run: |
-        # Replace the install link in V0_MCP_CURSOR_SETUP.md
-        sed -i "s|cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=[A-Za-z0-9+/=]*|${{ steps.generate-link.outputs.install_link }}|g" V0_MCP_CURSOR_SETUP.md
+        if git diff --quiet mcp-install-link.json MCP_INSTALL_LINK.md; then
+          echo "changes=false" >> $GITHUB_OUTPUT
+        else
+          echo "changes=true" >> $GITHUB_OUTPUT
+        fi
         
     - name: Commit and push changes
+      if: steps.check-changes.outputs.changes == 'true' || github.event.inputs.force_update == 'true'
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add README.md V0_INTEGRATION_LANDING.md V0_MCP_CURSOR_SETUP.md
-        git diff --quiet && git diff --staged --quiet || git commit -m "Update MCP install link with latest configuration"
-        git push 
+        git add mcp-install-link.json MCP_INSTALL_LINK.md
+        git commit -m "🤖 Auto-update MCP install link [skip ci]"
+        git push
+        
+    - name: Create release
+      if: steps.check-changes.outputs.changes == 'true' || github.event.inputs.force_update == 'true'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: mcp-v${{ github.run_number }}
+        release_name: MCP Server Update v${{ github.run_number }}
+        body: |
+          🤖 Automated MCP install link update
+          
+          **Changes:**
+          - Updated MCP install link with latest configuration
+          - Regenerated installation documentation
+          - Updated badges and documentation
+          
+          **Install Link:**
+          [![Add to Cursor](https://img.shields.io/badge/Add_to_Cursor-Install_V0_MCP_Server-blue?style=for-the-badge&logo=cursor)](https://github.com/${{ github.repository }}/releases/latest)
+          
+          **Usage:**
+          ```
+          @nuggetwise-v0 v0_generate "Create a green dot on white screen"
+          ```
+        draft: false
+        prerelease: false
+        
+    - name: Update README badges
+      if: steps.check-changes.outputs.changes == 'true' || github.event.inputs.force_update == 'true'
+      run: |
+        # Update the install link in README.md
+        sed -i 's|cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=[^)]*|cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config='$(node -e "console.log(require('./mcp-install-link.json').configBase64)")'|g' README.md
+        
+        # Commit README changes
+        git add README.md
+        git commit -m "🤖 Update README with latest MCP install link [skip ci]" || echo "No README changes to commit"
+        git push
+        
+    - name: Notify on success
+      if: success()
+      run: |
+        echo "✅ MCP install link updated successfully!"
+        echo "🔗 New install link generated and committed"
+        echo "📝 Documentation updated"
+        
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ MCP install link update failed!"
+        echo "Please check the logs for details" 

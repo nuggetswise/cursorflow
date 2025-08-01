@@ -1,0 +1,7 @@
+{
+  "installLink": "cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=ewogICJudWdnZXR3aXNlLXYwIjogewogICAgImNvbW1hbmQiOiAibm9kZSIsCiAgICAiYXJncyI6IFsKICAgICAgIiR7d29ya3NwYWNlRm9sZGVyfS9wYWNrYWdlcy9udy1tY3AvZGlzdC9tY3Atc2VydmVyLmpzIgogICAgXSwKICAgICJlbnYiOiB7CiAgICAgICJOT0RFX0VOViI6ICJkZXZlbG9wbWVudCIsCiAgICAgICJWMF9BUElfS0VZIjogIiR7ZW52OlYwX0FQSV9LRVl9IiwKICAgICAgIk9QRU5BSV9BUElfS0VZIjogIiR7ZW52Ok9QRU5BSV9BUElfS0VZfSIKICAgIH0KICB9Cn0=",
+  "configJson": "{\n  \"nuggetwise-v0\": {\n    \"command\": \"node\",\n    \"args\": [\n      \"${workspaceFolder}/packages/nw-mcp/dist/mcp-server.js\"\n    ],\n    \"env\": {\n      \"NODE_ENV\": \"development\",\n      \"V0_API_KEY\": \"${env:V0_API_KEY}\",\n      \"OPENAI_API_KEY\": \"${env:OPENAI_API_KEY}\"\n    }\n  }\n}",
+  "configBase64": "ewogICJudWdnZXR3aXNlLXYwIjogewogICAgImNvbW1hbmQiOiAibm9kZSIsCiAgICAiYXJncyI6IFsKICAgICAgIiR7d29ya3NwYWNlRm9sZGVyfS9wYWNrYWdlcy9udy1tY3AvZGlzdC9tY3Atc2VydmVyLmpzIgogICAgXSwKICAgICJlbnYiOiB7CiAgICAgICJOT0RFX0VOViI6ICJkZXZlbG9wbWVudCIsCiAgICAgICJWMF9BUElfS0VZIjogIiR7ZW52OlYwX0FQSV9LRVl9IiwKICAgICAgIk9QRU5BSV9BUElfS0VZIjogIiR7ZW52Ok9QRU5BSV9BUElfS0VZfSIKICAgIH0KICB9Cn0=",
+  "timestamp": "2025-08-01T03:09:54.648Z",
+  "version": "1.0.0"
+}
