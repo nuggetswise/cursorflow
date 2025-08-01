@@ -1,602 +1,317 @@
-# Nuggetwise Builder - MCP Server Implementation Guide
+# V0 Integration through MCP in Cursor IDE
 
-## 🚀 **Overview**
+## 🚀 **One-Click Installation**
 
-Nuggetwise Builder is the **only MCP server** for CursorFlow platform, providing a single `/nw` command interface that generates React/Tailwind UIs in under 30 seconds using V0 AI-powered UI generation. It uses a 7-agent orchestration system to transform spoken ideas into working code with direct file writing capabilities, all within the Cursor IDE environment. CLI and extension options are available as optional future enhancements (commented out at the bottom of this document).
+### **Install V0 MCP Server in Cursor**
 
----
+**Generate the latest install link:**
 
-## **🎯 Core Features**
-
-### **Single Command Interface**
 ```bash
-/nw build "Job tracker app with dark mode and drag-and-drop"
-/nw update "Add user authentication to the login form"
-/nw pull "Get the latest design from Figma"
+node scripts/generate-mcp-link.js
 ```
 
-### **7-Agent Orchestration System + V0 Integration**
-1. **Intent Analysis Agent**: Understands user goals and requirements
-2. **UX Pattern Selector**: Chooses appropriate UI patterns
-3. **Validation Agent**: Validates feasibility and suggests improvements
-4. **UI Requirement Synthesizer**: Converts patterns to component specs
-5. **V0 Prompt Builder**: Creates optimized prompts for V0 API
-6. **V0 UI Generator**: Generates AI-powered UI components with direct file writing
-7. **Diff Detector**: Identifies changes and potential conflicts
-8. **Notification Agent**: Sends updates to Slack and other channels
+This will generate a fresh install link with the current configuration.
 
----
+### **Manual Installation**
 
-## **🏗️ Technical Implementation**
+If the button doesn't work, you can manually install by:
 
-### **MCP Server Architecture**
-```typescript
-// packages/nw-mcp/src/index.ts
-import express from "express";
-import { budgetGuard, timeoutGuard } from "./middleware/guards";
-import { buildProduct, updateFlow, pullDesigns } from "./handlers";
-import { agentOrchestrator } from "./services/orchestrator";
-import { v0IntegrationService } from "./services/v0-integration";
+1. **Generate the install link** using the script above
+2. **Copy the generated link** and paste it in your browser
+3. **Follow the prompts** to install the MCP server
 
-const app = express();
+## 🛠️ **Prerequisites**
 
-// Middleware
-app.use(express.json());
-app.use(budgetGuard);
-app.use(timeoutGuard);
+Before using the V0 MCP server, ensure you have:
 
-// Routes
-app.post("/build_product", buildProduct);
-app.post("/update_flow", updateFlow);
-app.post("/pull_designs", pullDesigns);
+1. **V0 API Key**: Set the `V0_API_KEY` environment variable
+2. **REST API Server**: The local MCP server must be running on port 3001
+3. **Node.js**: Version 18+ installed
 
-// V0 Integration routes
-app.post("/v0/generate", v0IntegrationService.generateUI);
-app.post("/v0/analyze", v0IntegrationService.analyzeWorkspace);
+## 🎯 **How to Use**
 
-// Agent orchestration
-app.use("/agents", agentOrchestrator);
+### **In Cursor Chat**
 
-app.listen(process.env.PORT || 8787, () => {
-  console.log("Nuggetwise MCP Server running on port 8787");
-});
-```
-
-### **Agent Orchestrator Service**
-```typescript
-// packages/nw-mcp/src/services/orchestrator.ts
-export class AgentOrchestrator {
-  private agents = {
-    intent: new IntentAnalysisAgent(),
-    ux: new UXPatternSelectorAgent(),
-    validation: new ValidationAgent(),
-    uiReq: new UIRequirementSynthesizerAgent(),
-    v0Builder: new V0PromptBuilderAgent(),
-    diff: new DiffDetectorAgent(),
-    notification: new NotificationAgent()
-  };
-
-  async orchestrateBuild(prompt: string): Promise<BuildResult> {
-    // Step 1: Intent Analysis
-    const intent = await this.agents.intent.analyze(prompt);
-    
-    // Step 2: UX Pattern Selection
-    const uxPatterns = await this.agents.ux.selectPatterns(intent);
-    
-    // Step 3: Validation
-    const validation = await this.agents.validation.validate(intent, uxPatterns);
-    
-    // Step 4: UI Requirements
-    const uiReqs = await this.agents.uiReq.synthesize(uxPatterns, validation);
-    
-    // Step 5: V0 Prompt Building
-    const v0Prompt = await this.agents.v0Builder.buildPrompt(uiReqs);
-    
-    // Step 6: V0 UI Generation
-    const v0Result = await this.v0Service.generateUI(v0Prompt, targetDir);
-    
-    // Step 7: Generate Code
-    const code = await this.generateCode(v0Result);
-    
-    // Step 7: Notification
-    await this.agents.notification.notify({
-      event: 'build_completed',
-      details: { prompt, components: code.components }
-    });
-
-    return {
-      components: code.components,
-      files: code.files,
-      v0Generation: {
-        files: v0Result.files,
-        previewUrl: v0Result.previewUrl,
-        performance: v0Result.performance
-      }
-      preview: code.preview
-    };
-  }
-}
-```
-
----
-
-## **🤖 Agent Implementations**
-
-### **1. Intent Analysis Agent**
-```typescript
-// packages/nw-mcp/src/agents/intent-analysis.ts
-export class IntentAnalysisAgent {
-  async analyze(prompt: string): Promise<IntentAnalysis> {
-    const systemPrompt = await this.loadPrompt('intent.json');
-    
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt.system },
-        { role: 'user', content: JSON.stringify({ idea: prompt }) }
-      ],
-      response_format: { type: 'json_object' }
-    });
-
-    return JSON.parse(response.choices[0].message.content);
-  }
-}
-
-interface IntentAnalysis {
-  goal: string;
-  userRoles: string[];
-  coreFeatures: Array<{
-    name: string;
-    description: string;
-  }>;
-  constraints: string[];
-}
-```
-
-### **2. UX Pattern Selector Agent**
-```typescript
-// packages/nw-mcp/src/agents/ux-pattern-selector.ts
-export class UXPatternSelectorAgent {
-  private patternLibrary = {
-    'authentication': ['login-form', 'signup-form', 'password-reset'],
-    'data-display': ['table', 'card-grid', 'list-view'],
-    'navigation': ['navbar', 'sidebar', 'breadcrumbs'],
-    'forms': ['multi-step-form', 'inline-form', 'modal-form'],
-    'feedback': ['toast', 'modal', 'inline-validation']
-  };
-
-  async selectPatterns(intent: IntentAnalysis): Promise<UXSelection[]> {
-    const systemPrompt = await this.loadPrompt('ux_selector.json');
-    
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt.system },
-        { role: 'user', content: JSON.stringify({ coreFeatures: intent.coreFeatures }) }
-      ],
-      response_format: { type: 'json_object' }
-    });
-
-    return JSON.parse(response.choices[0].message.content).selections;
-  }
-}
-```
-
-### **3. Validation Agent**
-```typescript
-// packages/nw-mcp/src/agents/validation.ts
-export class ValidationAgent {
-  async validate(intent: IntentAnalysis, uxPatterns: UXSelection[]): Promise<ValidationResult> {
-    const systemPrompt = await this.loadPrompt('validation.json');
-    
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt.system },
-        { 
-          role: 'user', 
-          content: JSON.stringify({ 
-            goal: intent.goal, 
-            userRoles: intent.userRoles, 
-            coreFeatures: intent.coreFeatures 
-          }) 
-        }
-      ],
-      response_format: { type: 'json_object' }
-    });
-
-    return JSON.parse(response.choices[0].message.content);
-  }
-}
-```
-
----
-
-## **🔧 Middleware & Guards**
-
-### **Budget Guard**
-```typescript
-// packages/nw-mcp/src/middleware/budget-guard.ts
-export const budgetGuard = async (req: Request, res: Response, next: NextFunction) => {
-  const userId = req.headers['x-user-id'] as string;
-  const weeklyBudget = process.env.BUDGET_WEEKLY_USD || 50;
-  
-  const currentSpend = await getWeeklySpend(userId);
-  
-  if (currentSpend >= weeklyBudget) {
-    return res.status(402).json({
-      error: 'budget_exceeded',
-      message: 'Weekly budget limit reached',
-      currentSpend,
-      weeklyBudget
-    });
-  }
-  
-  next();
-};
-```
-
-### **Timeout Guard**
-```typescript
-// packages/nw-mcp/src/middleware/timeout-guard.ts
-export const timeoutGuard = (timeoutMs: number = 30000) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const timeout = setTimeout(() => {
-      res.status(408).json({
-        error: 'timeout',
-        message: 'Request timed out',
-        timeoutMs
-      });
-    }, timeoutMs);
-
-    res.on('finish', () => clearTimeout(timeout));
-    next();
-  };
-};
-```
-
----
-
-## **📁 File Structure**
+Once installed, you can use V0 generation directly in Cursor Chat:
 
 ```
-packages/nw-mcp/
-├── src/
-│   ├── index.ts                 # MCP server entry point
-│   ├── handlers/
-│   │   ├── build-product.ts     # /nw build handler
-│   │   ├── update-flow.ts       # /nw update handler
-│   │   └── pull-designs.ts      # /nw pull handler
-│   ├── agents/
-│   │   ├── intent-analysis.ts
-│   │   ├── ux-pattern-selector.ts
-│   │   ├── validation.ts
-│   │   ├── ui-requirement-synthesizer.ts
-│   │   ├── v0-prompt-builder.ts
-│   │   ├── diff-detector.ts
-│   │   └── notification.ts
-│   ├── services/
-│   │   ├── orchestrator.ts
-│   │   ├── v0-client.ts
-│   │   ├── file-puller.ts
-│   │   └── slack-notifier.ts
-│   ├── middleware/
-│   │   ├── budget-guard.ts
-│   │   ├── timeout-guard.ts
-│   │   └── auth-guard.ts
-│   ├── utils/
-│   │   ├── prompt-loader.ts
-│   │   ├── cost-calculator.ts
-│   │   └── file-writer.ts
-│   └── types/
-│       ├── index.ts
-│       ├── agents.ts
-│       └── responses.ts
-├── prompts/
-│   ├── intent.json
-│   ├── ux_selector.json
-│   ├── validation.json
-│   ├── ui_req.json
-│   ├── v0_builder.txt
-│   ├── diff.json
-│   └── notify.json
-├── tests/
-│   ├── agents/
-│   ├── handlers/
-│   └── integration/
-├── package.json
-└── tsconfig.json
+@nuggetwise-v0 v0_generate "Create a login form with email and password fields"
 ```
 
----
+### **Available Tools**
 
-## **🔗 Cursor Integration**
+#### **v0_generate**
+Generate React components using V0 AI
 
-### **Cursor Rules Configuration**
-```yaml
-# .cursor/rules/nw.yaml
-- when: /^\/nw\s+build /
-  tool: build_product
-  passArgsAs: { prompt: $message.stripCommand("nw build") }
+**Parameters:**
+- `prompt` (required): Description of the component to generate
+- `modelId` (optional): V0 model to use (`v0-1.5-sm`, `v0-1.5-md`, `v0-1.5-lg`)
+- `saveToWorkspace` (optional): Whether to save generated files (default: true)
 
-- when: /^\/nw\s+update /
-  tool: update_flow
-  passArgsAs: { change: $message.stripCommand("nw update") }
-
-- when: /^\/nw\s+pull/
-  tool: pull_designs
+**Example:**
+```
+@nuggetwise-v0 v0_generate "a blue button with white text"
 ```
 
-### **MCP Tool Definitions**
-```typescript
-// packages/nw-mcp/src/tools/index.ts
-export const tools = {
-  build_product: {
-    description: "Build a React/Tailwind UI from a description (MCP-only approach)",
-    parameters: {
-      type: "object",
-      properties: {
-        prompt: {
-          type: "string",
-          description: "Description of the UI to build"
-        }
-      },
-      required: ["prompt"]
-    }
-  },
-  
-  update_flow: {
-    description: "Update an existing UI with new features (MCP-only approach)",
-    parameters: {
-      type: "object",
-      properties: {
-        change: {
-          type: "string",
-          description: "Description of the changes to make"
-        }
-      },
-      required: ["change"]
-    }
-  },
-  
-  pull_designs: {
-    description: "Pull latest designs from external sources",
-    parameters: {
-      type: "object",
-      properties: {}
+#### **v0_continue**
+Continue a V0 conversation
+
+**Parameters:**
+- `chatId` (required): V0 chat ID to continue
+- `message` (required): Message to send
+
+**Example:**
+```
+@nuggetwise-v0 v0_continue "Make the button larger"
+```
+
+## 🔧 **Technical Details**
+
+### **Architecture**
+
+The V0 MCP integration uses a two-tier architecture:
+
+1. **MCP Server** (`packages/nw-mcp/src/simple-mcp-server.js`)
+   - Implements the MCP protocol using ES modules
+   - Handles JSON-RPC communication with Cursor
+   - Provides tool definitions and execution
+
+2. **REST API Server** (`packages/nw-mcp/src/index.ts`)
+   - Handles V0 API integration
+   - Manages component generation and file saving
+   - Provides the actual V0 functionality
+
+### **MCP Protocol Implementation**
+
+The MCP server implements the standard MCP protocol:
+
+- **Initialization**: Responds to `initialize` requests
+- **Tool Listing**: Provides `tools/list` with available V0 tools
+- **Tool Execution**: Handles `tools/call` for V0 generation
+
+### **Configuration Management**
+
+The MCP server uses dynamic configuration:
+
+```json
+// mcp-config.json
+{
+  "nuggetwise-v0": {
+    "command": "node",
+    "args": ["${workspaceFolder}/packages/nw-mcp/src/simple-mcp-server.js"],
+    "env": {
+      "NODE_ENV": "development",
+      "V0_API_KEY": "${env:V0_API_KEY}",
+      "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
     }
   }
 }
-
-### **V0 Integration Service**
-```typescript
-// packages/nw-mcp/src/services/v0-integration.ts
-export class V0IntegrationService {
-  private v0Client: V0Client;
-  private fileManager: FileManager;
-
-  constructor() {
-    this.v0Client = new V0Client(process.env.V0_API_KEY);
-    this.fileManager = new FileManager();
-  }
-
-  async generateUI(prompt: string, targetDir: string): Promise<V0GenerationResult> {
-    // Generate UI using V0 API
-    const result = await this.v0Client.generate(prompt, {
-      model: process.env.V0_MODEL || 'v0-1.5-md'
-    });
-    
-    // Write files to target directory
-    const writtenFiles = await this.fileManager.writeFiles(result.files, targetDir);
-    
-    return {
-      files: writtenFiles,
-      previewUrl: result.previewUrl,
-      performance: {
-        generationTime: result.generationTime,
-        tokenCount: result.tokenCount,
-        cost: result.cost
-      }
-    };
-  }
-
-  async analyzeWorkspace(workspace: string): Promise<WorkspaceAnalysis> {
-    // Analyze existing workspace for context-aware generation
-    return this.v0Client.analyzeWorkspace(workspace);
-  }
-}
-```;
 ```
 
----
+### **Install Link Generation**
 
-## **🚀 Deployment**
+The install link is generated dynamically:
 
-### **Local Development**
 ```bash
-# Install dependencies
+# Generate fresh install link
+node scripts/generate-mcp-link.js
+```
+
+This script:
+1. Reads `mcp-config.json`
+2. Converts to base64
+3. Generates the Cursor deeplink
+4. Displays installation instructions
+
+### **Enhanced Error Handling**
+
+The MCP server includes comprehensive error handling:
+
+```javascript
+// Error handling in tool execution
+try {
+  const response = await fetch('http://localhost:3001/tools/v0.generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, options: { modelId, saveToWorkspace } })
+  });
+  
+  const result = await response.json();
+  
+  if (result.success) {
+    // Handle success
+  } else {
+    // Handle API errors
+  }
+} catch (error) {
+  // Handle network/connection errors
+}
+```
+
+## 🚀 **Getting Started**
+
+### **1. Environment Setup**
+
+```bash
+# Set required environment variables
+export V0_API_KEY="your_v0_api_key_here"
+export OPENAI_API_KEY="your_openai_api_key_here"
+
+# Verify environment
+echo "V0_API_KEY: $V0_API_KEY"
+echo "OPENAI_API_KEY: $OPENAI_API_KEY"
+```
+
+### **2. Start the REST API Server**
+
+```bash
+# Start the backend server
 cd packages/nw-mcp
-npm install
-
-# Set up environment
-cp .env.example .env
-# Edit .env with your API keys
-
-# Start development server
 npm run dev
 ```
 
-### **Production Deployment**
+### **3. Test MCP Server**
+
 ```bash
-# Build the package
-npm run build
-
-# Deploy to Vercel
-vercel --prod
-
-# Or deploy as Docker container
-docker build -t nuggetwise-mcp .
-docker run -p 8787:8787 nuggetwise-mcp
+# Test MCP server directly
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0.0"}}}' | node src/simple-mcp-server.js
 ```
 
----
+### **4. Install in Cursor**
 
-## **📊 Monitoring & Analytics**
-
-### **Key Metrics**
-- **Build Success Rate**: Percentage of successful builds
-- **Average Build Time**: Time from command to working code
-- **Cost per Build**: API costs and resource usage
-- **User Satisfaction**: Feedback and ratings
-
-### **Error Tracking**
-```typescript
-// packages/nw-mcp/src/utils/error-tracker.ts
-export class ErrorTracker {
-  async trackError(error: Error, context: BuildContext) {
-    await analytics.track('build_error', {
-      error: error.message,
-      stack: error.stack,
-      context,
-      timestamp: new Date().toISOString()
-    });
-  }
-}
-```
-
----
-
-## **🔧 Configuration**
-
-### **Environment Variables**
 ```bash
-# Core Configuration
-NODE_ENV=production
-PORT=8787
-LOG_LEVEL=info
-
-# AI Services
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-
-# v0 Integration
-V0_API_KEY=v0_...
-V0_BASE_URL=https://api.v0.dev
-
-# External Services
-SLACK_WEBHOOK_URL=https://...
-SLACK_CHANNEL=#nuggetwise-builds
-
-# Budget & Limits
-BUDGET_WEEKLY_USD=50
-MAX_BUILD_TIME=30000
-MAX_TOKENS_PER_BUILD=10000
-
-# Monitoring
-SENTRY_DSN=https://...
-ANALYTICS_KEY=...
+# Generate and use install link
+node scripts/generate-mcp-link.js
 ```
 
----
+### **5. Configure Cursor**
 
----
-
-## **🚫 CLI & Extension Implementation (Commented Out - Only When Required)**
-
-> **Note**: The following sections are commented out as CLI and VS Code extension are optional future enhancements. The primary focus is MCP integration within Cursor IDE.
-
-<!--
-## **📦 CLI Package Development (Optional Future)**
-
-### **CLI Package Structure**
-```bash
-# Create CLI package
-mkdir packages/nuggetwise-cli
-cd packages/nuggetwise-cli
-npm init
-
-# Configure package.json
-{
-  "name": "nuggetwise-cli",
-  "bin": {
-    "nw": "./bin/nw.js"
-  },
-  "files": ["bin/", "templates/"]
-}
-```
-
-### **CLI Implementation**
-```javascript
-#!/usr/bin/env node
-// bin/nw.js
-
-const { program } = require('commander');
-const { buildProduct, updateFlow, pullDesigns } = require('../src/commands');
-
-program
-  .command('build <prompt>')
-  .description('Build a new application from description')
-  .action(buildProduct);
-
-program
-  .command('update <change>')
-  .description('Update existing application with new features')
-  .action(updateFlow);
-
-program
-  .command('pull <source>')
-  .description('Pull latest design from external sources')
-  .action(pullDesigns);
-
-program.parse();
-```
-
-### **VS Code Extension Development (Optional Future)**
-
-### **Extension Configuration**
 ```json
+// .cursor/mcp.json
 {
-  "name": "nuggetwise-vscode",
-  "displayName": "Nuggetwise Builder",
-  "description": "Generate UI components with V0",
-  "version": "1.0.0",
-  "engines": { "vscode": "^1.60.0" },
-  "categories": ["Other"],
-  "activationEvents": ["onCommand:nuggetwise.build"],
-  "contributes": {
-    "commands": [
-      {
-        "command": "nuggetwise.build",
-        "title": "Build UI with Nuggetwise"
-      }
-    ]
+  "mcpServers": {
+    "nuggetwise-v0": {
+      "command": "node",
+      "args": ["${workspaceFolder}/packages/nw-mcp/src/simple-mcp-server.js"],
+      "env": {
+        "NODE_ENV": "development",
+        "V0_API_KEY": "${env:V0_API_KEY}",
+        "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
+      },
+      "autoRun": true,
+      "description": "V0 AI-powered component generation"
+    }
   }
 }
 ```
 
-### **Extension Implementation**
-```typescript
-// src/extension.ts
-import * as vscode from 'vscode';
-import { NuggetwiseBuilder } from './builder';
+### **6. Test in Cursor Chat**
 
-export function activate(context: vscode.ExtensionContext) {
-  const builder = new NuggetwiseBuilder();
-  
-  let disposable = vscode.commands.registerCommand('nuggetwise.build', async () => {
-    const prompt = await vscode.window.showInputBox({
-      prompt: 'Describe the UI you want to generate'
-    });
-    
-    if (prompt) {
-      const result = await builder.build(prompt);
-      vscode.window.showInformationMessage(`Generated ${result.files.length} files`);
-    }
-  });
-  
-  context.subscriptions.push(disposable);
-}
--->
----
+```
+@nuggetwise-v0 v0_generate "Create a simple red button"
+```
 
-*This implementation provides a robust foundation for rapid UI generation through MCP commands with comprehensive monitoring and error handling, all within the Cursor IDE environment. CLI and extension options are available as optional future enhancements.* 
+## 🔍 **Troubleshooting Guide**
+
+### **Common Issues**
+
+#### **1. "MCP server not found"**
+**Symptoms**: Cursor can't find the MCP server
+**Solutions**:
+- Verify the MCP server is running: `ps aux | grep simple-mcp-server`
+- Check the path in `.cursor/mcp.json` is correct
+- Restart Cursor IDE after configuration changes
+
+#### **2. "V0 API key not found"**
+**Symptoms**: V0 generation fails with API key errors
+**Solutions**:
+- Verify `V0_API_KEY` is set: `echo $V0_API_KEY`
+- Check the environment variable is passed to the MCP server
+- Test V0 API directly: `curl -H "Authorization: Bearer $V0_API_KEY" https://api.v0.dev/v1/models`
+
+#### **3. "REST API server not running"**
+**Symptoms**: MCP server can't connect to backend
+**Solutions**:
+- Start the REST API server: `cd packages/nw-mcp && npm run dev`
+- Verify it's running on port 3001: `curl http://localhost:3001/health`
+- Check firewall settings
+
+#### **4. "Install link not working"**
+**Symptoms**: Cursor deeplink doesn't install the MCP server
+**Solutions**:
+- Generate a fresh install link: `node scripts/generate-mcp-link.js`
+- Check the base64 configuration is valid
+- Try manual installation via `.cursor/mcp.json`
+
+### **Debug Mode**
+
+Enable debug mode for detailed logging:
+
+```bash
+DEBUG_MCP=true node packages/nw-mcp/src/simple-mcp-server.js
+```
+
+### **Performance Monitoring**
+
+Key metrics to monitor:
+
+- **Response Time**: MCP server to REST API communication
+- **Success Rate**: Percentage of successful V0 generations
+- **Error Rate**: API failures and network issues
+- **Usage Patterns**: Most common prompts and models
+
+## 📋 **Implementation Checklist**
+
+### **Phase 1: Core Setup** ✅
+- [x] **MCP Server Implementation**: Basic MCP protocol support
+- [x] **V0 Integration**: REST API server with V0 SDK
+- [x] **Tool Definitions**: v0_generate and v0_continue tools
+- [x] **Basic Error Handling**: Try-catch blocks in tool execution
+- [x] **Response Formatting**: Standard MCP response format
+
+### **Phase 2: Enhanced Error Handling** 🔄
+- [ ] **Environment Validation**: Startup checks for required variables
+- [ ] **API Error Handling**: Specific error messages for V0 API failures
+- [ ] **Network Error Handling**: Timeout and connectivity error handling
+- [ ] **User-Friendly Error Messages**: Clear troubleshooting guidance
+- [ ] **Error Logging**: Detailed error logging for debugging
+
+### **Phase 3: User Experience** 📋
+- [ ] **Auto-Run Configuration**: Enable automatic tool execution
+- [ ] **Enhanced Response Formatting**: Better markdown formatting
+- [ ] **Progress Indicators**: Show generation progress
+- [ ] **Tool Descriptions**: Detailed tool documentation
+- [ ] **Usage Examples**: Comprehensive examples for each tool
+
+### **Phase 4: Advanced Features** 🚀
+- [ ] **Performance Optimization**: Request caching and optimization
+- [ ] **Rate Limiting**: Prevent API abuse
+- [ ] **Configuration Validation**: Validate all settings
+- [ ] **Health Checks**: Server health monitoring
+- [ ] **Metrics Collection**: Usage analytics
+
+### **Phase 5: Testing & Validation** 🧪
+- [ ] **Unit Tests**: Test individual MCP server functions
+- [ ] **Integration Tests**: Test V0 API integration
+- [ ] **End-to-End Tests**: Test complete workflow
+- [ ] **Performance Tests**: Load testing and optimization
+- [ ] **User Acceptance Tests**: Real-world usage testing
+
+### **Phase 6: Documentation & Support** 📚
+- [ ] **Troubleshooting Guide**: Common issues and solutions
+- [ ] **API Documentation**: Complete API reference
+- [ ] **Video Tutorials**: Step-by-step setup guides
+- [ ] **Community Support**: Discord/forum integration
+- [ ] **FAQ Section**: Frequently asked questions
+
+### **Phase 7: Registry Standardization** 🏷️
+- [ ] **Cursor Directory Submission**: Submit to [cursor.directory/mcp](https://cursor.directory/mcp)
+- [ ] **Standard Documentation Format**: Follow registry documentation standards
+- [ ] **Registry Entry Creation**: Create proper MCP server registry entry
+- [ ] **Installation Instructions**: Standardize installation steps per registry format
+- [ ] **Configuration Examples**: Provide stdio/SSE configuration examples
+- [ ] **Tool Usage Documentation**: Clear tool descriptions and examples
+- [ ] **Screenshots & Examples**: Add visual examples of tool usage
+- [ ] **Support Information**: Add support channels and contact information
+- [ ] **Version Management**: Implement proper versioning for registry updates
+- [ ] **Registry Metadata**: Add proper tags, categories, and descriptions 

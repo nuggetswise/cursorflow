@@ -1,0 +1,63 @@
+name: Update MCP Install Link
+
+on:
+  push:
+    paths:
+      - 'mcp-config.json'
+      - 'packages/nw-mcp/src/simple-mcp-server.js'
+  workflow_dispatch:
+
+jobs:
+  update-link:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Generate MCP Install Link
+      id: generate-link
+      run: |
+        # Read the MCP configuration
+        CONFIG=$(cat mcp-config.json)
+        
+        # Convert to base64
+        BASE64_CONFIG=$(echo "$CONFIG" | base64 -w 0)
+        
+        # Generate the install link
+        INSTALL_LINK="cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=$BASE64_CONFIG"
+        
+        # Output the link for use in other steps
+        echo "install_link=$INSTALL_LINK" >> $GITHUB_OUTPUT
+        echo "base64_config=$BASE64_CONFIG" >> $GITHUB_OUTPUT
+        
+        echo "Generated MCP Install Link:"
+        echo "$INSTALL_LINK"
+        
+    - name: Update README with new link
+      run: |
+        # Replace the install link in README.md
+        sed -i "s|cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=[A-Za-z0-9+/=]*|${{ steps.generate-link.outputs.install_link }}|g" README.md
+        
+    - name: Update V0 Integration Landing Page
+      run: |
+        # Replace the install link in V0_INTEGRATION_LANDING.md
+        sed -i "s|cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=[A-Za-z0-9+/=]*|${{ steps.generate-link.outputs.install_link }}|g" V0_INTEGRATION_LANDING.md
+        
+    - name: Update V0 MCP Setup Guide
+      run: |
+        # Replace the install link in V0_MCP_CURSOR_SETUP.md
+        sed -i "s|cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=[A-Za-z0-9+/=]*|${{ steps.generate-link.outputs.install_link }}|g" V0_MCP_CURSOR_SETUP.md
+        
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add README.md V0_INTEGRATION_LANDING.md V0_MCP_CURSOR_SETUP.md
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update MCP install link with latest configuration"
+        git push 

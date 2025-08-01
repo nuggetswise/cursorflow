@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "nuggetwise-v0": {
+      "command": "node",
+      "args": ["/Users/singhm/cursorflow/packages/nw-mcp/dist/mcp-server.js"],
+      "env": {
+        "NODE_ENV": "development",
+        "V0_API_KEY": "v1:qt5y5M4jsKNedp3U50FTPCB4:XitMdXVldFLzmmpl4tKdV07c"
+      }
+    }
+  }
+} 

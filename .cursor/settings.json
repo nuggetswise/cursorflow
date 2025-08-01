@@ -1,21 +1,14 @@
 {
-  "mcp": {
-    "enabled": true,
-    "servers": {
-      "nuggetwise": {
-        "command": "node",
-        "args": ["${workspaceFolder}/packages/nw-mcp/dist/index.js"],
-        "env": {
-          "NODE_ENV": "development",
-          "V0_API_KEY": "${env:V0_API_KEY}",
-          "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
-        }
+  "mcpServers": {
+    "nuggetwise": {
+      "command": "node",
+      "args": ["${workspaceFolder}/packages/nw-mcp/src/simple-mcp-server.js"],
+      "env": {
+        "NODE_ENV": "development",
+        "V0_API_KEY": "${env:V0_API_KEY}",
+        "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
       }
     }
-  },
-  "rules": {
-    "v0": ".cursor/rules/v0.yaml",
-    "test": ".cursor/rules/test.yaml"
   },
   "terminal.integrated.env.osx": {
     "V0_API_KEY": "${env:V0_API_KEY}",

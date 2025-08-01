@@ -278,18 +278,18 @@ Generate a comprehensive v0.dev prompt that uses Base44 techniques like "It shou
 "It should feel like ${themeRef} with clean typography and thoughtful spacing."`;
   }
 
-  private getInteractionDescription(interactions: any): string {
+  private getInteractionDescription(interactions: { animations?: string[]; transitions?: string[]; hoverEffects?: string[] }): string {
     const interactionPhrases = [];
     
-    if (interactions.animations.length > 0) {
+    if (interactions.animations && interactions.animations.length > 0) {
       interactionPhrases.push(`"Add smooth animations for ${interactions.animations.join(', ')}"`);
     }
     
-    if (interactions.transitions.length > 0) {
+    if (interactions.transitions && interactions.transitions.length > 0) {
       interactionPhrases.push(`"Let users experience smooth transitions when ${interactions.transitions.join(', ')}"`);
     }
     
-    if (interactions.hoverEffects.length > 0) {
+    if (interactions.hoverEffects && interactions.hoverEffects.length > 0) {
       interactionPhrases.push(`"Make interactive elements respond with ${interactions.hoverEffects.join(', ')} on hover"`);
     }
     

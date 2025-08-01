@@ -1,400 +1,130 @@
-# CursorFlow - Deployment & Infrastructure
+# CursorFlow Deployment Guide
 
-## ☁️ Cloud Infrastructure Overview
+## 🚀 Deploy to Vercel
 
-CursorFlow is designed as a cloud-first platform with zero local development setup required. All services are deployed on Vercel with serverless functions, ensuring scalability and ease of maintenance. The platform includes V0 AI-powered UI generation, MCP server integration, and MCP-only approach. CLI and extension options are available as optional future enhancements.
+This guide will help you deploy CursorFlow to Vercel with both marketing website and web application functionality.
 
-## 🏗️ Infrastructure Architecture
+## 📋 Prerequisites
 
-### **Deployment Architecture**
+1. **GitHub Repository** - Your code should be in a GitHub repo
+2. **Vercel Account** - Sign up at [vercel.com](https://vercel.com)
+3. **Supabase Project** - Set up your Supabase project
+4. **API Keys** - OpenAI, v0 Platform, etc.
+
+## 🏗️ Project Structure
+
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    CURSORFLOW - CLOUD INFRASTRUCTURE           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  [Frontend] → [Vercel Edge Network] → [Global CDN]             │
-│      ↓              ↓              ↓                           │
-│  Next.js App    Edge Functions   Static Assets                 │
-│  (React/TS)     (API Routes)     (Images/Fonts)                │
-│                                                                 │
-│  [Backend] → [Vercel Functions] → [Serverless Runtime]         │
-│      ↓              ↓              ↓                           │
-│  Node.js/TS     API Endpoints    Auto-scaling                  │
-│  (Express)      (REST/GraphQL)   (0-1000 instances)            │
-│                                                                 │
-│  [Database] → [Firestore] → [Google Cloud]                     │
-│      ↓              ↓              ↓                           │
-│  NoSQL DB       Real-time        Global Distribution           │
-│  (Collections)   Sync            (Multi-region)                │
-│                                                                 │
-│  [External APIs] → [OpenAI] → [V0 Platform] → [Stripe]         │
-│      ↓              ↓              ↓              ↓             │
-│  API Gateway    GPT-4 Models    AI UI Gen       Payments       │
-│  (Rate Limiting) (Text Gen)     (Components)    (Subscriptions)│
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## 🚀 Deployment Platforms
-
-### **1. Vercel (Primary Platform)**
-
-#### **Frontend Deployment**
-```json
-// vercel.json
-{
-  "version": 2,
-  "name": "cursorflow-frontend",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs18.x",
-      "maxDuration": 30
-    }
-  }
-}
+cursorflow/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx              # Marketing homepage
+│   │   ├── app/                  # Web application
+│   │   │   ├── layout.tsx        # App layout
+│   │   │   ├── page.tsx          # Dashboard
+│   │   │   ├── projects/         # Project management
+│   │   │   ├── audits/           # AI analysis
+│   │   │   └── settings/         # User settings
+│   │   ├── api/                  # API routes
+│   │   └── auth/                 # Authentication pages
+│   ├── components/
+│   │   ├── marketing/            # Marketing components
+│   │   ├── app/                  # App components
+│   │   └── ui/                   # Shared UI components
+│   └── lib/                      # Utilities and config
+├── public/                       # Static assets
+├── next.config.js               # Next.js config
+├── vercel.json                  # Vercel config
+└── package.json                 # Dependencies
 ```
 
-#### **Backend API Deployment**
-```typescript
-// api/index.ts
-import express from 'express';
-import cors from 'cors';
-import { prdRoutes } from './routes/prd';
-import { projectRoutes } from './routes/project';
-import { authRoutes } from './routes/auth';
-import { v0Routes } from './routes/v0';
-import { mcpRoutes } from './routes/mcp';
-import { errorHandler } from './middleware/error-handler';
+## 🔧 Setup Steps
 
-const app = express();
+### **1. Prepare Your Repository**
 
-// Middleware
-app.use(cors({
-  origin: [
-    'https://cursorflow.com',
-    'https://app.cursorflow.com',
-    'http://localhost:3000' // Development only
-  ],
-  credentials: true
-}));
-
-app.use(express.json({ limit: '10mb' }));
-
-// Routes
-app.use('/api/v0', v0Routes);
-app.use('/api/mcp', mcpRoutes);
-app.use('/api/prds', prdRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/auth', authRoutes);
-
-// Error handling
-app.use(errorHandler);
-```
-
-#### **V0 MCP Server Deployment**
-```typescript
-// packages/v0-mcp-server/vercel.json
-{
-  "version": 2,
-  "name": "v0-mcp-server",
-  "builds": [
-    {
-      "src": "src/index.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/tools/(.*)",
-      "dest": "/src/index.ts"
-    }
-  ],
-  "env": {
-    "V0_API_KEY": "@v0-api-key",
-    "V0_MODEL": "v0-1.5-md",
-    "V0_RATE_LIMIT": "30"
-  }
-}
-```
-
-#### **MCP-Only Deployment**
-```json
-// packages/nw-mcp/package.json
-{
-  "name": "nuggetwise-mcp",
-  "version": "1.0.0",
-  "main": "dist/index.js",
-  "files": [
-    "dist/",
-    "src/"
-  ],
-  "publishConfig": {
-    "access": "public"
-  }
-}
-```
-
-// Error handling
-app.use(errorHandler);
-
-export default app;
-```
-
-### **2. Firebase (Database & Authentication)**
-
-#### **Firestore Configuration**
-```typescript
-// config/firebase.ts
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-
-const serviceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-};
-
-const app = initializeApp({
-  credential: cert(serviceAccount),
-  databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
-});
-
-export const db = getFirestore(app);
-```
-
-#### **Firestore Security Rules**
-```javascript
-// firestore.rules
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users can only access their own data
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // PRDs belong to users
-    match /prds/{prdId} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
-    }
-    
-    // Projects belong to users
-    match /projects/{projectId} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
-    }
-    
-    // Analytics are user-specific
-    match /analytics/{analyticsId} {
-      allow read, write: if request.auth != null && 
-        request.auth.uid == resource.data.userId;
-    }
-  }
-}
-```
-
-## 🔧 Environment Configuration
-
-### **Environment Variables**
 ```bash
-# Production Environment Variables
-NODE_ENV=production
-PORT=3000
+# Ensure your code is committed to GitHub
+git add .
+git commit -m "Prepare for deployment"
+git push origin main
+```
 
-# OpenAI Configuration
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4
+### **2. Connect to Vercel**
 
-# v0 Platform Configuration
-V0_API_KEY=v0_...
-V0_BASE_URL=https://api.v0.dev
+1. Go to [vercel.com](https://vercel.com)
+2. Click "New Project"
+3. Import your GitHub repository
+4. Select the repository
 
-# Firebase Configuration
-FIREBASE_PROJECT_ID=cursorflow-prod
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-...@cursorflow-prod.iam.gserviceaccount.com
+### **3. Configure Project Settings**
 
-# JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key
-JWT_EXPIRES_IN=7d
+#### **Framework Preset**
+- **Framework Preset**: Next.js
+- **Root Directory**: `./` (or `frontend/` if your Next.js app is in a subdirectory)
+- **Build Command**: `npm run build`
+- **Output Directory**: `.next`
+- **Install Command**: `npm install`
 
-# Stripe Configuration
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+#### **Environment Variables**
+Add these environment variables in Vercel:
+
+```bash
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+
+# AI Services
+OPENAI_API_KEY=sk-your-openai-api-key
+V0_API_KEY=v0_your-v0-api-key
 
 # Application Configuration
-NEXT_PUBLIC_APP_URL=https://cursorflow.com
-NEXT_PUBLIC_API_URL=https://api.cursorflow.com
+NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
+NODE_ENV=production
+
+# Optional: Analytics
+NEXT_PUBLIC_GA_ID=your-google-analytics-id
+NEXT_PUBLIC_VERCEL_ANALYTICS_ID=your-vercel-analytics-id
 ```
 
-### **Environment Management**
-```typescript
-// config/environment.ts
-export const config = {
-  // Environment
-  nodeEnv: process.env.NODE_ENV || 'development',
-  isProduction: process.env.NODE_ENV === 'production',
-  isDevelopment: process.env.NODE_ENV === 'development',
-  
-  // URLs
-  appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-  apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
-  
-  // OpenAI
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY!,
-    model: process.env.OPENAI_MODEL || 'gpt-4',
-    maxTokens: 4000,
-  },
-  
-  // v0 Platform
-  v0: {
-    apiKey: process.env.V0_API_KEY!,
-    baseUrl: process.env.V0_BASE_URL || 'https://api.v0.dev',
-  },
-  
-  // Firebase
-  firebase: {
-    projectId: process.env.FIREBASE_PROJECT_ID!,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY!,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
-  },
-  
-  // JWT
-  jwt: {
-    secret: process.env.JWT_SECRET!,
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  },
-  
-  // Stripe
-  stripe: {
-    secretKey: process.env.STRIPE_SECRET_KEY!,
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
-  },
-};
+### **4. Deploy**
+
+Click "Deploy" and wait for the build to complete.
+
+## 🌐 Domain Configuration
+
+### **Custom Domain Setup**
+
+1. **Add Custom Domain**
+   - Go to your Vercel project dashboard
+   - Click "Settings" → "Domains"
+   - Add your custom domain (e.g., `cursorflow.com`)
+
+2. **Configure DNS**
+   - Add the required DNS records to your domain provider
+   - Vercel will provide the exact records needed
+
+### **Subdomain Setup (Optional)**
+
+You can set up subdomains for different sections:
+
+```
+cursorflow.com          → Marketing website
+app.cursorflow.com      → Web application
+api.cursorflow.com      → API endpoints
 ```
 
-## 🔄 CI/CD Pipeline
+## 🔒 Security Configuration
 
-### **GitHub Actions Workflow**
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy to Production
+### **1. Environment Variables**
+- Never commit sensitive keys to your repository
+- Use Vercel's environment variable system
+- Rotate keys regularly
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+### **2. CORS Configuration**
+Your `vercel.json` already includes security headers:
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run tests
-        run: npm test
-      
-      - name: Run linting
-        run: npm run lint
-      
-      - name: Type check
-        run: npm run type-check
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Build application
-        run: npm run build
-        env:
-          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-      
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-```
-
-### **Vercel Configuration**
 ```json
-// vercel.json
 {
-  "version": 2,
-  "name": "cursorflow",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1",
-      "headers": {
-        "Access-Control-Allow-Origin": "https://cursorflow.com",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization"
-      }
-    }
-  ],
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs18.x",
-      "maxDuration": 30
-    }
-  },
-  "env": {
-    "NODE_ENV": "production"
-  },
   "headers": [
     {
       "source": "/(.*)",
@@ -406,10 +136,6 @@ jobs:
         {
           "key": "X-Content-Type-Options",
           "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
         }
       ]
     }
@@ -417,302 +143,185 @@ jobs:
 }
 ```
 
-## 📊 Monitoring & Observability
+### **3. Supabase Row Level Security**
+Ensure your Supabase database has RLS enabled:
 
-### **Vercel Analytics**
-```typescript
-// utils/analytics.ts
-import { Analytics } from '@vercel/analytics/react';
+```sql
+-- Enable RLS on all tables
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audits ENABLE ROW LEVEL SECURITY;
 
-export function AnalyticsWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      {children}
-      <Analytics />
-    </>
-  );
-}
+-- Create policies
+CREATE POLICY "Users can only access own projects" ON projects
+  FOR ALL USING (auth.uid() = user_id);
 ```
 
-### **Error Tracking with Sentry**
-```typescript
-// utils/sentry.ts
-import * as Sentry from '@sentry/nextjs';
+## 📊 Monitoring & Analytics
 
-Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  environment: process.env.NODE_ENV,
-  tracesSampleRate: 1.0,
-  integrations: [
-    new Sentry.BrowserTracing({
-      tracePropagationTargets: ['localhost', 'cursorflow.com'],
-    }),
-  ],
-});
+### **1. Vercel Analytics**
+Enable Vercel Analytics for performance monitoring:
 
-export { Sentry };
-```
-
-### **Performance Monitoring**
-```typescript
-// middleware/performance.ts
-import { NextApiRequest, NextApiResponse } from 'next';
-
-export function performanceMiddleware(
-  handler: (req: NextApiRequest, res: NextApiResponse) => Promise<void>
-) {
-  return async (req: NextApiRequest, res: NextApiResponse) => {
-    const start = Date.now();
-    
-    try {
-      await handler(req, res);
-    } finally {
-      const duration = Date.now() - start;
-      
-      // Log performance metrics
-      console.log({
-        method: req.method,
-        url: req.url,
-        duration,
-        statusCode: res.statusCode,
-      });
-      
-      // Track slow requests
-      if (duration > 1000) {
-        console.warn(`Slow request: ${req.method} ${req.url} took ${duration}ms`);
-      }
-    }
-  };
-}
-```
-
-## 🔒 Security Configuration
-
-### **CORS Configuration**
-```typescript
-// middleware/cors.ts
-import cors from 'cors';
-
-const corsOptions = {
-  origin: [
-    'https://cursorflow.com',
-    'https://app.cursorflow.com',
-    'http://localhost:3000' // Development only
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  maxAge: 86400, // 24 hours
-};
-
-export const corsMiddleware = cors(corsOptions);
-```
-
-### **Rate Limiting**
-```typescript
-// middleware/rate-limit.ts
-import rateLimit from 'express-rate-limit';
-
-const planLimits = {
-  free: 100,
-  pro: 1000,
-  team: 5000,
-};
-
-export const createRateLimiter = (plan: string = 'free') => {
-  const limit = planLimits[plan] || planLimits.free;
-  
-  return rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: limit,
-    message: {
-      error: 'Rate limit exceeded',
-      limit,
-      windowMs: 60 * 60 * 1000,
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => req.user?.userId || req.ip,
-  });
-};
-```
-
-## 🚀 Deployment Commands
-
-### **Local Development**
 ```bash
-# Install dependencies
-npm install
+# Add to your environment variables
+NEXT_PUBLIC_VERCEL_ANALYTICS_ID=your-analytics-id
+```
 
-# Start development server
-npm run dev
+### **2. Google Analytics**
+Add Google Analytics for user tracking:
 
-# Build for production
+```bash
+# Add to your environment variables
+NEXT_PUBLIC_GA_ID=your-ga-id
+```
+
+### **3. Error Monitoring**
+Consider adding Sentry for error tracking:
+
+```bash
+# Add to your environment variables
+NEXT_PUBLIC_SENTRY_DSN=your-sentry-dsn
+```
+
+## 🔄 Continuous Deployment
+
+### **Automatic Deployments**
+Vercel automatically deploys when you push to your main branch:
+
+```bash
+# Deploy by pushing to main
+git push origin main
+```
+
+### **Preview Deployments**
+Create preview deployments for pull requests:
+
+```bash
+# Create a feature branch
+git checkout -b feature/new-feature
+git push origin feature/new-feature
+
+# Create a pull request
+# Vercel will create a preview deployment
+```
+
+## 🚀 Performance Optimization
+
+### **1. Image Optimization**
+Your `next.config.js` includes image optimization:
+
+```javascript
+images: {
+  domains: [
+    'your-project.supabase.co',
+    'lh3.googleusercontent.com',
+  ],
+  formats: ['image/webp', 'image/avif'],
+}
+```
+
+### **2. Caching Strategy**
+Configure caching for static assets:
+
+```json
+{
+  "headers": [
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### **3. Bundle Optimization**
+Use Next.js built-in optimizations:
+
+```javascript
+// next.config.js
+const nextConfig = {
+  experimental: {
+    optimizeCss: true,
+    optimizePackageImports: ['@supabase/supabase-js'],
+  },
+}
+```
+
+## 🔧 Troubleshooting
+
+### **Common Issues**
+
+#### **1. Build Failures**
+```bash
+# Check build logs in Vercel dashboard
+# Common fixes:
+npm install --legacy-peer-deps
+# or
+npm install --force
+```
+
+#### **2. Environment Variables**
+```bash
+# Verify environment variables are set correctly
+# Check Vercel dashboard → Settings → Environment Variables
+```
+
+#### **3. Database Connection**
+```bash
+# Ensure Supabase URL and keys are correct
+# Test connection in development first
+```
+
+#### **4. API Routes Not Working**
+```bash
+# Check function timeout settings in vercel.json
+# Ensure API routes are in src/app/api/
+```
+
+### **Debug Commands**
+
+```bash
+# Test build locally
 npm run build
 
-# Start production server
-npm start
+# Test production build
+npm run start
+
+# Check for TypeScript errors
+npm run type-check
+
+# Lint code
+npm run lint
 ```
 
-### **Production Deployment**
-```bash
-# Deploy to Vercel
-vercel --prod
+## 📈 Scaling Considerations
 
-# Deploy with environment variables
-vercel --prod --env NODE_ENV=production
+### **Free Tier Limits**
+- **Bandwidth**: 100GB/month
+- **Function Executions**: 100/month
+- **Build Time**: 100 minutes/month
 
-# Deploy specific functions
-vercel --prod --scope api
-```
+### **Pro Plan ($20/month)**
+- **Bandwidth**: Unlimited
+- **Function Executions**: 1000/month
+- **Build Time**: 400 minutes/month
+- **Custom Domains**: Unlimited
 
-### **Database Migration**
-```bash
-# Deploy Firestore rules
-firebase deploy --only firestore:rules
+### **Enterprise Plan**
+- **Custom limits**
+- **Priority support**
+- **Advanced features**
 
-# Deploy Firestore indexes
-firebase deploy --only firestore:indexes
+## 🎯 Next Steps
 
-# Deploy all Firebase resources
-firebase deploy
-```
+1. **Deploy to Vercel** using this guide
+2. **Set up custom domain** for professional appearance
+3. **Configure monitoring** for performance tracking
+4. **Set up CI/CD** for automated deployments
+5. **Monitor performance** and optimize as needed
 
-## 📈 Scaling Strategy
-
-### **Auto-scaling Configuration**
-```typescript
-// config/scaling.ts
-export const scalingConfig = {
-  // Vercel Functions
-  functions: {
-    maxDuration: 30, // seconds
-    maxInstances: 1000,
-    minInstances: 0,
-  },
-  
-  // Database
-  firestore: {
-    maxConnections: 100,
-    timeout: 30000, // 30 seconds
-  },
-  
-  // External APIs
-  openai: {
-    maxConcurrent: 10,
-    timeout: 60000, // 60 seconds
-  },
-  
-  v0: {
-    maxConcurrent: 5,
-    timeout: 120000, // 2 minutes
-  },
-};
-```
-
-### **Caching Strategy**
-```typescript
-// utils/cache.ts
-import { LRUCache } from 'lru-cache';
-
-const cache = new LRUCache({
-  max: 500, // Maximum number of items
-  ttl: 1000 * 60 * 5, // 5 minutes
-  updateAgeOnGet: true,
-});
-
-export const cacheMiddleware = (duration: number = 300) => {
-  return (req: any, res: any, next: any) => {
-    const key = `${req.method}:${req.url}`;
-    const cached = cache.get(key);
-    
-    if (cached) {
-      return res.json(cached);
-    }
-    
-    const originalSend = res.json;
-    res.json = function(data: any) {
-      cache.set(key, data, { ttl: duration * 1000 });
-      return originalSend.call(this, data);
-    };
-    
-    next();
-  };
-};
-```
-
----
-
----
-
-## **🚫 CLI & Extension Deployment (Commented Out - Only When Required)**
-
-> **Note**: The following sections are commented out as CLI and VS Code extension are optional future enhancements. The primary focus is MCP integration within Cursor IDE.
-
-<!--
-#### **Multi-Platform Deployment**
-```json
-// packages/nuggetwise-cli/package.json
-{
-  "name": "nuggetwise-v0-init",
-  "version": "1.0.0",
-  "bin": {
-    "nuggetwise-v0-init": "./bin/nuggetwise-v0-init.js"
-  },
-  "files": [
-    "bin/",
-    "templates/"
-  ],
-  "publishConfig": {
-    "access": "public"
-  }
-}
-```
-
-#### **VS Code Extension Deployment**
-```json
-// packages/vscode-extension/package.json
-{
-  "name": "nuggetwise-vscode",
-  "displayName": "Nuggetwise Builder",
-  "description": "Generate UI components with V0",
-  "version": "1.0.0",
-  "engines": { "vscode": "^1.60.0" },
-  "categories": ["Other"],
-  "activationEvents": ["onCommand:nuggetwise.build"],
-  "contributes": {
-    "commands": [
-      {
-        "command": "nuggetwise.build",
-        "title": "Build UI with Nuggetwise"
-      }
-    ]
-  }
-}
-```
-
-#### **CLI Package Publishing**
-```bash
-# Publish CLI package to npm
-cd packages/nuggetwise-cli
-npm publish
-
-# Publish with specific version
-npm version patch
-npm publish
-```
-
-#### **Extension Publishing**
-```bash
-# Package extension
-cd packages/vscode-extension
-vsce package
-
-# Publish to VS Code marketplace
-vsce publish
-```
--->
-
----
-
-**Next Steps**: Review [`TESTING.md`](./TESTING.md) for comprehensive testing strategy and [`BUSINESS_MODEL.md`](./BUSINESS_MODEL.md) for business model and go-to-market plan. 
+Your CursorFlow application is now ready for production deployment on Vercel! 

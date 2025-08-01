@@ -2,6 +2,19 @@
 
 A comprehensive platform that combines Cursor IDE with Vercel's v0 Platform API to transform Product Requirements Documents (PRDs) into production-ready code.
 
+## 🚀 **Quick Start - V0 Integration**
+
+### **Install V0 MCP Server in Cursor (One-Click)**
+
+[Add V0 MCP Server to Cursor](cursor://anysphere.cursor-deeplink/mcp/install?name=nuggetwise-v0&config=eyJudWdnZXR3aXNlLXYwIjp7ImNvbW1hbmQiOiJub2RlIiwiYXJncyI6WyIke3dvcmtzcGFjZUZvbGRlcn0vcGFja2FnZXMvbnctbWNwL3NyYy9zaW1wbGUtbWNwLXNlcnZlci5qcyJdLCJlbnYiOnsiTk9ERV9FTlYiOiJkZXZlbG9wbWVudCIsIlYwX0FQSV9LRVkiOiIke2VudjpWMF9BUElfS0VZfSIsIk9QRU5BSV9BUElfS0VZIjoiJHtlbnY6T1BFTkFJX0FQSV9LRVl9In19fQ==)
+
+**After installation, use in Cursor Chat:**
+```
+@nuggetwise-v0 v0_generate "Create a login form with email and password"
+```
+
+📖 **[Full V0 MCP Setup Guide](V0_MCP_CURSOR_SETUP.md)**
+
 ## 🏗️ Project Structure
 
 ```
@@ -50,58 +63,6 @@ cursorflow/
 ├── package.json              # Root package.json (monorepo)
 └── README.md                 # This file
 ```
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 18+ 
-- npm 8+
-- Git
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-org/cursorflow.git
-   cd cursorflow
-   ```
-
-2. **Install all dependencies**
-   ```bash
-   npm run install:all
-   ```
-
-3. **Set up environment variables**
-   ```bash
-   # Copy environment files
-   cp env.example .env
-   cp frontend/env.example frontend/.env.local
-   cp backend/env.example backend/.env
-   
-   # Edit the files with your API keys
-   # Frontend (.env.local)
-   NEXT_PUBLIC_API_URL=http://localhost:3001
-   NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_key
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-   
-   # Backend (.env)
-   PORT=3001
-   NODE_ENV=development
-   OPENAI_API_KEY=your_openai_key
-   V0_API_KEY=your_v0_key
-   FIREBASE_SERVICE_ACCOUNT_KEY=your_service_account_key
-   ```
-
-4. **Start development servers**
-   ```bash
-   # Start both frontend and backend
-   npm run dev
-   
-   # Or start individually
-   npm run dev:frontend  # Frontend on http://localhost:3000
-   npm run dev:backend   # Backend on http://localhost:3001
-   ```
 
 ## 📁 Package Structure
 
