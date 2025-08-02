@@ -277,76 +277,199 @@ class NuggetwiseMCPServer {
 
     // Handle prompt requests (Simplified 5-command workflow)
     this.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-      const { name } = request.params;
+      const { name, arguments: args } = request.params;
+      
+      console.error('🔍 MCP Prompt Request:', { name, args });
       
       if (name === 'generate') {
-        return {
-          prompt: {
-            name: 'generate',
+        console.error('🔍 MCP Prompt Request - Full params:', JSON.stringify(request.params, null, 2));
+        
+        // Simple argument extraction
+        let prompt = 'Create a React component';
+        
+        if (args) {
+          if (typeof args === 'string') {
+            prompt = args;
+          } else if (args.prompt) {
+            prompt = args.prompt;
+          } else if (Object.keys(args).length > 0) {
+            // Take the first string value found
+            const firstStringValue = Object.values(args).find(v => typeof v === 'string');
+            if (firstStringValue) {
+              prompt = firstStringValue;
+            }
+          }
+        }
+        
+        // Validate prompt
+        if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+          return {
             description: 'Generate React components from a natural-language prompt using V0',
-            arguments: [
+            messages: [
               {
-                name: 'prompt',
-                description: 'What you want to build',
-                type: 'string',
-                required: true
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: '❌ Error: A valid prompt is required. Please provide a description of the component you want to generate.'
+                }
               }
             ]
+          };
+        }
+        
+        prompt = prompt.trim();
+        console.error('🎯 Final prompt:', prompt);
+        
+        // Instead of just returning a message, let's actually execute the V0 generation
+        try {
+          console.error('🚀 Executing V0 generation from prompt...');
+          
+          // Check for API key and provide setup instructions if missing
+          if (await this.setupWizard.detectMissingApiKey()) {
+            const setupInstructions = await this.setupWizard.provideSetupInstructions();
+            return {
+              description: 'Generate React components from a natural-language prompt using V0',
+              messages: [
+                {
+                  role: 'user',
+                  content: {
+                    type: 'text',
+                    text: setupInstructions
+                  }
+                }
+              ]
+            };
           }
-        };
+
+          // Validate API key
+          const apiKey = await this.setupWizard.getApiKey();
+          if (apiKey) {
+            const validation = await this.setupWizard.validateApiKey(apiKey);
+            if (!validation.isValid) {
+              return {
+                description: 'Generate React components from a natural-language prompt using V0',
+                messages: [
+                  {
+                    role: 'user',
+                    content: {
+                      type: 'text',
+                      text: `❌ ${validation.error}\n\n💡 Please check your V0 API key configuration and try again.`
+                    }
+                  }
+                ]
+              };
+            }
+          }
+          
+          const result = await this.v0Client.generateComponents(prompt, {
+            modelId: 'v0-1.5-sm',
+            saveToWorkspace: false,
+          });
+
+          // Save files to workspace
+          let fileInfo = '';
+          if (result.files && result.files.length > 0) {
+            const fileResult = await this.fileWriter.writeV0Files(result.files, {
+              fileName: 'generated-component'
+            });
+            
+            if (fileResult.success) {
+              fileInfo = `\n\n📁 Files saved to workspace:\n`;
+              for (const file of result.files) {
+                fileInfo += `  - ${file.name}\n`;
+              }
+            }
+          }
+
+          return {
+            description: 'Generate React components from a natural-language prompt using V0',
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: `✅ Generated React component: ${prompt}\n\n🔗 Project URL: ${result.projectUrl}\n🚀 Demo URL: ${result.deploymentUrl}${fileInfo}`
+                }
+              }
+            ]
+          };
+          
+        } catch (error) {
+          console.error('❌ Error executing V0 generation from prompt:', error);
+          return {
+            description: 'Generate React components from a natural-language prompt using V0',
+            messages: [
+              {
+                role: 'user',
+                content: {
+                  type: 'text',
+                  text: `❌ Failed to generate component: ${error instanceof Error ? error.message : 'Unknown error'}`
+                }
+              }
+            ]
+          };
+        }
       }
       
       if (name === 'update') {
+        const message = args?.message || 'Update the component';
         return {
-          prompt: {
-            name: 'update',
-            description: 'Update existing components with new requirements',
-            arguments: [
-              {
-                name: 'message',
-                description: 'What changes or updates you want to make',
-                type: 'string',
-                required: true
+          description: 'Update existing components with new requirements',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: `Update the component: ${message}`
               }
-            ]
-          }
+            }
+          ]
         };
       }
       
       if (name === 'sync') {
         return {
-          prompt: {
-            name: 'sync',
-            description: 'Pull changes from V0 web interface',
-            arguments: []
-          }
+          description: 'Pull changes from V0 web interface',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: 'Sync changes from V0 web interface'
+              }
+            }
+          ]
         };
       }
       
       if (name === 'status') {
         return {
-          prompt: {
-            name: 'status',
-            description: 'Check current project status and connection',
-            arguments: []
-          }
+          description: 'Check current project status and connection',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: 'Check the current project status and connection to V0'
+              }
+            }
+          ]
         };
       }
       
       if (name === 'connect') {
+        const v0Url = args?.v0Url || '';
         return {
-          prompt: {
-            name: 'connect',
-            description: 'Connect to existing V0 project',
-            arguments: [
-              {
-                name: 'v0Url',
-                description: 'V0 project URL to connect to',
-                type: 'string',
-                required: true
+          description: 'Connect to existing V0 project',
+          messages: [
+            {
+              role: 'user',
+              content: {
+                type: 'text',
+                text: `Connect to V0 project: ${v0Url}`
               }
-            ]
-          }
+            }
+          ]
         };
       }
       
@@ -357,14 +480,43 @@ class NuggetwiseMCPServer {
     this.server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest) => {
       const { name, arguments: args } = request.params;
 
+      console.error('🔧 MCP Tool Call:', { name, args });
+      console.error('🔧 MCP Tool Call - Full request params:', JSON.stringify(request.params, null, 2));
+
       try {
         switch (name) {
           case 'generate': {
-            const { prompt, modelId = 'v0-1.5-sm' } = args as any;
-            
             console.error('🚀 MCP: Starting V0 generation...');
-            console.error('📝 MCP: Prompt:', prompt);
-            console.error('🔧 MCP: Options:', { modelId });
+            console.error('🔍 MCP: Raw args:', args);
+            
+            // Extract prompt from various possible argument formats
+            let prompt = 'Create a React component';
+            let modelId = 'v0-1.5-sm';
+            
+            if (args) {
+              if (typeof args === 'string') {
+                prompt = args;
+              } else if (typeof args === 'object' && args !== null) {
+                if ('description' in args && typeof args.description === 'string') {
+                  prompt = args.description;
+                } else if ('prompt' in args && typeof args.prompt === 'string') {
+                  prompt = args.prompt;
+                }
+                if ('modelId' in args && typeof args.modelId === 'string') {
+                  modelId = args.modelId;
+                }
+                if (Object.keys(args).length > 0) {
+                  // Look for any string value that could be the prompt
+                  const stringValues = Object.values(args).filter(v => typeof v === 'string') as string[];
+                  if (stringValues.length > 0 && stringValues[0]) {
+                    prompt = stringValues[0];
+                  }
+                }
+              }
+            }
+            
+            console.error('📝 MCP: Extracted prompt:', prompt);
+            console.error('🔧 MCP: Model ID:', modelId);
 
             // Check for API key and provide setup instructions if missing
             if (await this.setupWizard.detectMissingApiKey()) {

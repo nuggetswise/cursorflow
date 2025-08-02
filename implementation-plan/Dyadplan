@@ -1,0 +1,668 @@
+# 📐 Dyad-Powered Nuggetwise Builder - Implementation Checklist
+
+*End-to-end implementation plan for the dev team (Phase 1)*
+*(v0 path stays read-only; this doc covers the **"in-house builder"** that runs on Dyad CLI, GPT-4o-mini/Gemini, and delivers full React + Tailwind projects, including dynamic routes, in one slash-command.)*
+
+---
+
+## 0. Objectives & Success Metrics
+
+| # | Objective                                                                                                                 | Success metric                                      | Status |
+| - | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------ |
+| 1 | One-command **`/nw build`** drops an entire folder tree—pages, components, assets—into Cursor in < 30 s cold / 10 s warm. | p95 latency ≤ 30 s                                  | ❌ Not Started |
+| 2 | Supports **dynamic routes** (`/blog/[slug]`) with `getStaticPaths/getStaticProps`.                                        | Generated `[slug].tsx` compiles & renders mock data | ❌ Not Started |
+| 3 | Runs on **Nuggetwise-funded LLM key** (managed-key mode) with cost guard.                                                 | Max spend ≤ US \$30 per user per month              | ❌ Not Started |
+| 4 | Output passes ESLint, Prettier, Tailwind class order (shadcn).                                                            | `pnpm lint && pnpm format` → 0 errors               | ❌ Not Started |
+| 5 | Slack notification shows `added / updated / conflicts`.                                                                   | Manifest surfaces correct counts                    | ❌ Not Started |
+
+---
+
+## 1. High-level flow (Hybrid Approach + Non-Technical Users)
+
+```mermaid
+sequenceDiagram
+  participant U as User (/nw commands)
+  participant C as Cursor MCP
+  participant N as Nuggetwise API
+  participant D as Local Dyad CLI
+  participant S as Cloud Dyad Worker
+  participant WS as Cursor Workspace
+
+  U->>C: /nw "create recipe app" OR /nw "make buttons bigger"
+  C->>N: build_product {prompt, provider:"dyad", mode:"local|cloud", userType:"technical|non-technical"}
+  N->>N: Synthesiser → Dyad JSON
+  
+  alt Local Mode (User has Dyad CLI)
+    N->>D: Execute dyad CLI with workspace path
+    D->>WS: Write files directly to workspace
+  else Cloud Mode (User prefers cloud)
+    N->>S: Execute dyad CLI in cloud worker
+    S->>N: Return generated files
+    N->>WS: Write files to workspace via MCP
+  end
+  
+  N->>C: Return success + user-friendly feedback
+  N->>Slack: 🎉 UI ready! {added:10}
+```
+
+---
+
+## 2. Component Implementation Checklist
+
+### ✅ **EXISTING COMPONENTS** (Already Implemented)
+
+| Module                                                  | Path                                       | Owner       | Status | Notes |
+| ------------------------------------------------------- | ------------------------------------------ | ----------- | ------ | ----- |
+| **UIRequirementSynthesizerAgent** (similar to Synthesiser) | `packages/nw-mcp/src/agents/UIRequirementSynthesizerAgent.ts` | @FrontendAI | ✅ Done | Needs adaptation for Dyad format |
+| **Budget Guard** (cost management)                      | `packages/nw-mcp/src/middleware/budgetGuard.ts` | @Infra | ✅ Done | Needs tiered pricing integration |
+| **Notification Agent** (Slack integration)              | `packages/nw-mcp/src/agents/NotificationAgent.ts` | @Infra | ✅ Done | Needs manifest format updates |
+| **Agent Orchestrator** (workflow management)            | `packages/nw-mcp/src/services/AgentOrchestrator.ts` | @Platform | ✅ Done | Needs Dyad integration |
+| **V0Client** (API integration pattern)                  | `packages/nw-mcp/src/services/V0Client.ts` | @Platform | ✅ Done | Can be adapted for Dyad |
+| **FileWriter** (file generation)                        | `packages/nw-mcp/src/services/FileWriter.ts` | @Platform | ✅ Done | Needs Dyad output handling |
+
+### ❌ **MISSING COMPONENTS** (Need to Build)
+
+| Module                                                  | Path                                       | Owner       | Priority | Estimated Time |
+| ------------------------------------------------------- | ------------------------------------------ | ----------- | -------- | -------------- |
+| **Dyad JSON Builder**                                   | `packages/nw-mcp/src/builders/dyadBuilder.ts` | @FrontendAI | 🔴 High | 1 day |
+| **Dyad Local Service** (CLI integration)                | `packages/nw-mcp/src/services/DyadLocalService.ts` | @Platform | 🔴 High | 1 day |
+| **Dyad Cloud Worker** (Docker container)                | `packages/nw-mcp/infra/dyad-worker/` | @Infra | 🔴 High | 2 days |
+| **Local File Handler** (Direct FS access)               | `packages/nw-mcp/src/services/LocalFileHandler.ts` | @Platform | 🔴 High | 0.5 day |
+| **Cloud File Handler** (Remote file sync)               | `packages/nw-mcp/src/services/CloudFileHandler.ts` | @Platform | 🔴 High | 1 day |
+| **Natural Language Parser** (Non-technical UX)          | `packages/nw-mcp/src/services/NaturalLanguageParser.ts` | @FrontendAI | 🔴 High | 1.5 days |
+| **Change Application Service** (Smart updates)          | `packages/nw-mcp/src/services/ChangeApplicationService.ts` | @Platform | 🔴 High | 1.5 days |
+| **Visual Feedback Service** (User-friendly responses)   | `packages/nw-mcp/src/services/VisualFeedbackService.ts` | @Design | 🟡 Medium | 1 day |
+| **User Type Detection** (Technical vs Non-technical)    | `packages/nw-mcp/src/services/UserTypeDetectionService.ts` | @Platform | 🟡 Medium | 0.5 day |
+| **System Prompt** (shadcn/aria/8-pt grid)              | `packages/nw-mcp/prompts/system.md` | @Design | 🟡 Medium | 0.5 day |
+| **Feature Flags**                                       | `packages/nw-mcp/src/config/flags.ts` | @Platform | 🟢 Low | 0.5 day |
+| **MCP Dyad Tools** (Cursor integration)                 | `packages/nw-mcp/src/tools/dyad-tools.ts` | @Platform | 🔴 High | 1 day |
+| **Mode Detection Service** (Local vs Cloud)             | `packages/nw-mcp/src/services/ModeDetectionService.ts` | @Platform | 🟡 Medium | 0.5 day |
+
+---
+
+## 3. Detailed Implementation Tasks
+
+### **Day 1: Foundation Setup** 🔴 **HIGH PRIORITY**
+
+#### **Task 1.1: Create User Type Detection Service**
+- [ ] Create `packages/nw-mcp/src/services/UserTypeDetectionService.ts`
+- [ ] Detect if user is technical or non-technical
+- [ ] Analyze user interaction patterns
+- [ ] Store user type preferences
+- [ ] Implement adaptive learning
+
+**UserTypeDetectionService Template:**
+```typescript
+export class UserTypeDetectionService {
+  async detectUserType(userId: string, command: string): Promise<'technical' | 'non-technical'> {
+    // Analyze command patterns
+    const isTechnicalCommand = this.analyzeCommandPattern(command);
+    
+    // Check user history
+    const userHistory = await this.getUserHistory(userId);
+    
+    // Check explicit preferences
+    const userPrefs = await this.getUserPreferences(userId);
+    
+    if (userPrefs.userType) {
+      return userPrefs.userType;
+    }
+    
+    if (isTechnicalCommand || userHistory.technicalCommands > 5) {
+      return 'technical';
+    }
+    
+    return 'non-technical';
+  }
+  
+  private analyzeCommandPattern(command: string): boolean {
+    const technicalPatterns = ['build', 'add', 'update', '--', 'npm', 'git'];
+    return technicalPatterns.some(pattern => command.includes(pattern));
+  }
+}
+```
+
+#### **Task 1.2: Create Mode Detection Service**
+- [ ] Create `packages/nw-mcp/src/services/ModeDetectionService.ts`
+- [ ] Detect if Dyad CLI is installed locally
+- [ ] Check user preferences (local vs cloud)
+- [ ] Implement fallback logic
+- [ ] Add configuration options
+
+**ModeDetectionService Template:**
+```typescript
+export class ModeDetectionService {
+  async detectExecutionMode(userId: string): Promise<'local' | 'cloud'> {
+    // Check if Dyad CLI is installed
+    const hasLocalDyad = await this.checkLocalDyadInstallation();
+    
+    // Check user preferences
+    const userPrefs = await this.getUserPreferences(userId);
+    
+    // Check plan restrictions
+    const plan = await this.getUserPlan(userId);
+    
+    if (hasLocalDyad && userPrefs.mode !== 'cloud') {
+      return 'local';
+    }
+    
+    return 'cloud';
+  }
+  
+  private async checkLocalDyadInstallation(): Promise<boolean> {
+    try {
+      await execAsync('dyad --version');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+```
+
+#### **Task 1.2: Create Dyad Local Service**
+- [ ] Create `packages/nw-mcp/src/services/DyadLocalService.ts`
+- [ ] Implement local Dyad CLI execution
+- [ ] Add workspace path handling
+- [ ] Test local Dyad CLI integration
+- [ ] Add error handling and cleanup
+
+**DyadLocalService Template:**
+```typescript
+export class DyadLocalService {
+  async executeDyadBuild(dyadJson: string, workspacePath: string): Promise<BuildResult> {
+    const tempSpecPath = `/tmp/dyad-spec-${Date.now()}.json`;
+    await fs.writeFile(tempSpecPath, JSON.stringify(dyadJson, null, 2));
+    
+    const dyadCommand = `dyad build --input ${tempSpecPath} --output ${workspacePath}`;
+    const result = await execAsync(dyadCommand);
+    
+    await fs.remove(tempSpecPath);
+    return this.parseBuildResult(result);
+  }
+}
+```
+
+#### **Task 1.3: Create Dyad Cloud Worker**
+- [ ] Create `packages/nw-mcp/infra/dyad-worker/Dockerfile`
+- [ ] Create `packages/nw-mcp/infra/dyad-worker/worker.js`
+- [ ] Create `packages/nw-mcp/infra/dyad-worker/package.json`
+- [ ] Test Docker build: `docker build -t ghcr.io/nuggetwise/dyad-worker:latest`
+- [ ] Push to GitHub Container Registry
+
+**Dockerfile Template:**
+```dockerfile
+FROM node:18
+RUN npm i -g @dyad-sh/cli@latest
+COPY prompts/system.md /prompts/
+RUN corepack enable && pnpm add -g prettier eslint shadcn-class-order
+ENTRYPOINT ["node","/app/worker.js"]
+```
+
+#### **Task 1.4: Create Local File Handler**
+- [ ] Create `packages/nw-mcp/src/services/LocalFileHandler.ts`
+- [ ] Implement direct file system access to workspace
+- [ ] Add file manifest generation
+- [ ] Include conflict detection
+- [ ] Add workspace scanning capabilities
+
+**LocalFileHandler Template:**
+```typescript
+export class LocalFileHandler {
+  async getWorkspaceFiles(workspacePath: string): Promise<string[]> {
+    const files: string[] = [];
+    await this.scanDirectory(workspacePath, '', files);
+    return files;
+  }
+  
+  async writeFilesToWorkspace(files: FileMap, workspacePath: string): Promise<void> {
+    for (const [filePath, content] of Object.entries(files)) {
+      const fullPath = path.join(workspacePath, filePath);
+      await fs.ensureDir(path.dirname(fullPath));
+      await fs.writeFile(fullPath, content);
+    }
+  }
+}
+```
+
+#### **Task 1.5: Create Cloud File Handler**
+- [ ] Create `packages/nw-mcp/src/services/CloudFileHandler.ts`
+- [ ] Implement remote file generation handling
+- [ ] Add file transfer from cloud worker
+- [ ] Include progress tracking
+- [ ] Add error handling and retry logic
+
+**CloudFileHandler Template:**
+```typescript
+export class CloudFileHandler {
+  async handleCloudBuild(dyadJson: string, userId: string): Promise<FileMap> {
+    // Send build request to cloud worker
+    const response = await this.sendToCloudWorker(dyadJson, userId);
+    
+    // Download generated files
+    const files = await this.downloadGeneratedFiles(response.fileUrls);
+    
+    return files;
+  }
+  
+  async writeFilesToWorkspace(files: FileMap, workspacePath: string): Promise<void> {
+    // Write files received from cloud worker
+    for (const [filePath, content] of Object.entries(files)) {
+      const fullPath = path.join(workspacePath, filePath);
+      await fs.ensureDir(path.dirname(fullPath));
+      await fs.writeFile(fullPath, content);
+    }
+  }
+}
+```
+
+#### **Task 1.7: Create Natural Language Parser**
+- [ ] Create `packages/nw-mcp/src/services/NaturalLanguageParser.ts`
+- [ ] Implement intent analysis for non-technical commands
+- [ ] Add instruction parsing and categorization
+- [ ] Include change type detection (styling, layout, content, functionality)
+- [ ] Add priority and target component identification
+
+**NaturalLanguageParser Template:**
+```typescript
+export class NaturalLanguageParser {
+  async parseInstruction(instruction: string): Promise<ParsedInstruction> {
+    const analysis = await this.analyzeIntent(instruction);
+    
+    return {
+      type: analysis.type, // 'styling', 'layout', 'content', 'functionality'
+      target: analysis.target, // 'header', 'buttons', 'overall'
+      changes: analysis.changes, // specific modifications
+      priority: analysis.priority // 'high', 'medium', 'low'
+    };
+  }
+  
+  private async analyzeIntent(instruction: string): Promise<IntentAnalysis> {
+    const prompt = `Analyze this instruction: "${instruction}"
+    Return JSON with:
+    - type: styling|layout|content|functionality
+    - target: specific component or "overall"
+    - changes: array of specific changes
+    - priority: high|medium|low`;
+    
+    return await this.callLLM(prompt);
+  }
+}
+```
+
+#### **Task 1.8: Create System Prompt**
+- [ ] Create `packages/nw-mcp/prompts/system.md`
+- [ ] Include shadcn/ui guidelines
+- [ ] Add Tailwind class ordering rules
+- [ ] Include accessibility requirements
+- [ ] Add dynamic route handling instructions
+
+**System Prompt Content:**
+```markdown
+You are a senior front-end engineer.
+Guidelines:
+1. Use shadcn/ui components; import from "@/components/ui".
+2. Keep Tailwind classes in shadcn order.
+3. Provide aria labels on interactive elements.
+4. For routes with [slug], add getStaticPaths & getStaticProps stubs.
+5. Return only valid React/Tailwind code; no extra commentary.
+```
+
+### **Day 2: Core Building Blocks** 🔴 **HIGH PRIORITY**
+
+#### **Task 2.1: Create Enhanced MCP Dyad Tools**
+- [ ] Create `packages/nw-mcp/src/tools/dyad-tools.ts`
+- [ ] Implement smart command routing (technical vs non-technical)
+- [ ] Add natural language editing commands
+- [ ] Add visual feedback and help system
+- [ ] Integrate with Cursor MCP server
+
+**Enhanced MCP Tools Template:**
+```typescript
+export const dyadTools = {
+  // Smart command routing
+  execute: async (command: string, workspacePath: string, userId: string) => {
+    const userType = await userTypeDetectionService.detectUserType(userId, command);
+    
+    if (userType === 'technical') {
+      return await this.handleTechnicalCommand(command, workspacePath, userId);
+    } else {
+      return await this.handleNonTechnicalCommand(command, workspacePath, userId);
+    }
+  },
+  
+  // Technical commands
+  build: async (prompt: string, workspacePath: string, userId: string) => {
+    const mode = await modeDetectionService.detectExecutionMode(userId);
+    const dyadSpec = await generateDyadSpec(prompt);
+    
+    if (mode === 'local') {
+      const result = await dyadLocalService.executeDyadBuild(dyadSpec, workspacePath);
+      return { success: true, files: result.files, mode: 'local' };
+    } else {
+      const files = await cloudFileHandler.handleCloudBuild(dyadSpec, userId);
+      await cloudFileHandler.writeFilesToWorkspace(files, workspacePath);
+      return { success: true, files: Object.keys(files), mode: 'cloud' };
+    }
+  },
+  
+  // Non-technical commands
+  edit: async (instruction: string, workspacePath: string, userId: string) => {
+    const parsed = await naturalLanguageParser.parseInstruction(instruction);
+    const changes = await changeApplicationService.applyChanges(parsed, workspacePath);
+    await visualFeedbackService.showChanges(changes);
+    return { success: true, changes };
+  },
+  
+  help: async (topic?: string) => {
+    return await helpService.getHelp(topic);
+  }
+};
+```
+
+#### **Task 2.2: Create Dyad JSON Builder**
+- [ ] Create `packages/nw-mcp/src/builders/dyadBuilder.ts`
+- [ ] Implement `buildDyadJSON(components)` function
+- [ ] Add route, layout, theme mapping
+- [ ] Create short ID generation for token efficiency
+- [ ] Add TypeScript interfaces for Dyad format
+
+**Implementation:**
+```typescript
+function buildDyadJSON(components) {
+  return components.map((c,i)=>({
+    id:`C${i}`,           // short keys reduce tokens
+    n:c.name,
+    r:c.route,
+    p:{ theme:c.theme, layout:c.layout, sections:c.sections }
+  }));
+}
+```
+
+#### **Task 2.3: Create Change Application Service**
+- [ ] Create `packages/nw-mcp/src/services/ChangeApplicationService.ts`
+- [ ] Implement styling change application
+- [ ] Add layout modification logic
+- [ ] Include content update handling
+- [ ] Add functionality enhancement support
+
+**ChangeApplicationService Template:**
+```typescript
+export class ChangeApplicationService {
+  async applyChanges(instruction: ParsedInstruction, workspacePath: string): Promise<FileChanges> {
+    switch (instruction.type) {
+      case 'styling':
+        return await this.applyStylingChanges(instruction, workspacePath);
+      case 'layout':
+        return await this.applyLayoutChanges(instruction, workspacePath);
+      case 'content':
+        return await this.applyContentChanges(instruction, workspacePath);
+      case 'functionality':
+        return await this.applyFunctionalityChanges(instruction, workspacePath);
+    }
+  }
+  
+  private async applyStylingChanges(instruction: ParsedInstruction, workspacePath: string) {
+    // Update CSS/Tailwind classes based on instruction
+    // Example: "make buttons bigger and blue" → add size and color classes
+  }
+}
+```
+
+#### **Task 2.4: Adapt UIRequirementSynthesizerAgent**
+- [ ] Modify `packages/nw-mcp/src/agents/UIRequirementSynthesizerAgent.ts`
+- [ ] Add Dyad-specific output format
+- [ ] Include route generation logic
+- [ ] Add layout and theme selection
+- [ ] Update prompt templates for Dyad compatibility
+
+### **Day 3: Integration & Budget Management** 🔴 **HIGH PRIORITY**
+
+#### **Task 3.1: Integrate MCP with Cursor**
+- [ ] Update MCP server to handle `/nw` commands
+- [ ] Add workspace path detection
+- [ ] Implement command routing (build/add/update)
+- [ ] Add error handling and user feedback
+- [ ] Test Cursor integration end-to-end
+
+#### **Task 3.2: Enhance Budget Guard**
+- [ ] Update `packages/nw-mcp/src/middleware/budgetGuard.ts`
+- [ ] Add tiered pricing plans (starter/builder/team)
+- [ ] Implement monthly spend tracking
+- [ ] Add build count limits
+- [ ] Create budget exceeded notifications
+
+**Tiered Pricing:**
+```typescript
+const PLANS = {
+  starter: { monthlyCap: 5, buildCap: 30, model: 'gpt-4o-mini' },
+  builder: { monthlyCap: 10, buildCap: 150, model: 'gpt-4o-mini' },
+  team: { monthlyCap: 30, buildCap: 1000, model: 'gpt-4o' }
+};
+```
+
+### **Day 4: Non-Technical User Experience** 🟡 **MEDIUM PRIORITY**
+
+#### **Task 4.1: Create Visual Feedback Service**
+- [ ] Create `packages/nw-mcp/src/services/VisualFeedbackService.ts`
+- [ ] Implement user-friendly change notifications
+- [ ] Add progress indicators for long operations
+- [ ] Create help and guidance system
+- [ ] Add success/failure messaging
+
+**VisualFeedbackService Template:**
+```typescript
+export class VisualFeedbackService {
+  async showChanges(changes: FileChanges): Promise<void> {
+    // Show user what changed in a friendly way
+    // "✅ Made buttons bigger and blue"
+    // "✅ Added search bar to header"
+  }
+  
+  async showProgress(operation: string, progress: number): Promise<void> {
+    // Show progress for long operations
+  }
+  
+  async showHelp(topic: string): Promise<void> {
+    // Show contextual help
+  }
+}
+```
+
+#### **Task 4.2: Update Notification Agent**
+- [ ] Modify `packages/nw-mcp/src/agents/NotificationAgent.ts`
+- [ ] Add Dyad-specific notification templates
+- [ ] Include user-friendly messaging for non-technical users
+- [ ] Add build success/failure notifications
+- [ ] Include execution mode and user type in notifications
+
+### **Day 5: Code Quality & Formatting** 🟡 **MEDIUM PRIORITY**
+
+#### **Task 5.1: Post-Generation Code Mods**
+- [ ] Integrate ESLint in Dyad Worker
+- [ ] Add Prettier formatting
+- [ ] Implement shadcn class ordering
+- [ ] Add TypeScript compilation check
+- [ ] Create code quality validation
+
+#### **Task 5.2: Feature Flags**
+- [ ] Create `packages/nw-mcp/src/config/flags.ts`
+- [ ] Add provider selection (dyad/v0)
+- [ ] Implement plan-based features
+- [ ] Add environment-based defaults
+- [ ] Create feature toggle system
+
+### **Day 6-7: Testing & Validation** 🔴 **HIGH PRIORITY**
+
+#### **Task 6.1: Unit Tests**
+- [ ] Test Dyad JSON builder
+- [ ] Test budget guard with tiered plans
+- [ ] Test dynamic route generation
+- [ ] Test manifest generation
+- [ ] Test cost calculation
+
+#### **Task 6.2: Integration Tests**
+- [ ] End-to-end `/nw build recipe app` test
+- [ ] Test Dyad Worker communication
+- [ ] Test file generation and writing
+- [ ] Test notification delivery
+- [ ] Test budget enforcement
+
+### **Day 8-9: Documentation & Beta** 🟢 **LOW PRIORITY**
+
+#### **Task 8.1: Documentation**
+- [ ] Create `docs/dyad.md`
+- [ ] Write upgrade guide from V0 to Dyad
+- [ ] Document API changes
+- [ ] Create troubleshooting guide
+- [ ] Update README with pricing
+
+#### **Task 8.2: Beta Rollout**
+- [ ] Deploy to staging environment
+- [ ] Test with 3 internal PMs
+- [ ] Collect feedback and metrics
+- [ ] Fix identified issues
+- [ ] Prepare production deployment
+
+### **Day 10: Finalization** 🔴 **HIGH PRIORITY**
+
+#### **Task 10.1: Bug Bash & Polish**
+- [ ] Conduct comprehensive testing
+- [ ] Fix all identified issues
+- [ ] Optimize performance
+- [ ] Finalize pricing configuration
+- [ ] Prepare launch announcement
+
+---
+
+## 4. Current Codebase Analysis
+
+### **✅ What We Have:**
+1. **Agent Framework**: Complete 7-agent orchestration system
+2. **Budget Management**: Basic budget guard with daily limits
+3. **Notification System**: Slack integration with templates
+4. **File Management**: V0 file writing and conflict detection
+5. **API Integration**: V0Client pattern for external services
+6. **Type Safety**: Comprehensive TypeScript interfaces
+7. **Testing Framework**: Jest setup with agent tests
+
+### **❌ What We Need:**
+1. **Hybrid Execution Mode**: No local/cloud mode detection
+2. **User Type Detection**: No technical vs non-technical user detection
+3. **Local Dyad CLI Integration**: No local Dyad CLI execution
+4. **Cloud Dyad Worker**: No cloud-based Dyad execution
+5. **Direct File System Access**: No direct workspace file writing
+6. **Cloud File Handling**: No remote file generation and sync
+7. **Natural Language Parsing**: No non-technical command understanding
+8. **Smart Change Application**: No intelligent code modification
+9. **Visual Feedback System**: No user-friendly response system
+10. **Dyad JSON Format**: No builder for Dyad-specific format
+11. **Tiered Pricing**: Current budget guard only has daily limits
+12. **System Prompts**: No Dyad-specific system prompts
+13. **MCP Dyad Tools**: No `/nw` command integration with smart routing
+
+---
+
+## 5. Risk Assessment & Mitigation
+
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| Dyad CLI not working as expected | High | Medium | Test with sample Dyad projects first |
+| Token costs exceeding estimates | Medium | Low | Implement strict budget guards |
+| Generated code quality issues | High | Low | Comprehensive testing and validation |
+| Integration complexity | Medium | Medium | Incremental development approach |
+| Performance bottlenecks | Medium | Low | Load testing and optimization |
+
+---
+
+## 6. Success Criteria
+
+### **Technical Success:**
+- [ ] `pnpm test` passes (unit + integration)
+- [ ] `/nw build` command works in Cursor
+- [ ] Generated project compiles without errors
+- [ ] Dynamic pages load and render correctly
+- [ ] Budget enforcement works at plan limits
+- [ ] Files appear instantly in Cursor workspace
+
+### **Business Success:**
+- [ ] p95 latency ≤ 30 seconds (local execution)
+- [ ] Cost per user ≤ $30/month
+- [ ] Generated code passes all quality checks
+- [ ] Slack notifications show correct metrics
+- [ ] Documentation is complete and clear
+- [ ] Seamless Cursor integration experience
+
+---
+
+### 🚀 **Ready to Start Implementation**
+
+This checklist provides a clear roadmap for building the Dyad-powered Nuggetwise Builder with **hybrid local/cloud execution and universal accessibility**. The existing codebase provides a solid foundation, and the missing components are well-defined with clear ownership and timelines.
+
+**Key Benefits of This Universal Approach:**
+- ✅ **Universal Accessibility** - Works for both technical and non-technical users
+- ✅ **User Choice** - Users can choose local or cloud execution
+- ✅ **Natural Language** - Non-technical users can use plain English
+- ✅ **Code-First** - Technical users get full IDE control
+- ✅ **Instant file sync** - Files appear immediately in Cursor workspace
+- ✅ **Local privacy** - Option for local execution with full privacy
+- ✅ **Cloud convenience** - Option for cloud execution without setup
+- ✅ **Seamless UX** - Users stay in Cursor with `/nw` commands
+- ✅ **Automatic fallback** - Smart mode detection and fallback
+
+**User Experience Modes:**
+
+#### **Non-Technical Users** (Natural Language Interface)
+```
+User: /nw "create a restaurant website"
+↓
+System: "🎉 Created your restaurant website! Here's what I made:
+- Homepage with hero section
+- Menu page with product cards
+- Contact page with form"
+
+User: /nw "make the buttons bigger and blue"
+↓
+System: "🎨 Updated buttons:
+- Made them larger
+- Changed color to blue"
+```
+
+#### **Technical Users** (Code-First Interface)
+```
+User: /nw build "create a restaurant website"
+↓
+System: Generated files in workspace
+↓
+User: Directly edits generated code in Cursor
+↓
+User: /nw update "add TypeScript types"
+```
+
+#### **Hybrid Execution** (Local vs Cloud)
+```
+Local Mode: User has Dyad CLI → Local execution → Direct file writing
+Cloud Mode: User prefers cloud → Cloud worker → File sync via MCP
+```
+
+**Next Steps:**
+1. Start with Day 1 tasks (User type detection + mode detection + both execution paths)
+2. Follow the priority order (🔴 High → 🟡 Medium → 🟢 Low)
+3. Test each component thoroughly before moving to the next
+4. Maintain the existing V0 integration as fallback
+5. Document all changes for team handoff
+
+**Universal User Experience:**
+```
+Any user types in Cursor: /nw "create a recipe app"
+↓
+System detects user type (technical/non-technical)
+↓
+System detects execution mode (local/cloud)
+↓
+Executes Dyad in chosen environment
+↓
+Files appear instantly in Cursor workspace
+↓
+User continues with their preferred workflow
+```

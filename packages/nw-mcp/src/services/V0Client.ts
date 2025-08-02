@@ -29,6 +29,11 @@ export class V0Client {
         throw new Error('V0_API_KEY is required for component generation');
       }
 
+      // Validate prompt before attempting API calls
+      if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+        throw new Error('Prompt is required and cannot be empty');
+      }
+
       const response = await pRetry(
         async () => {
           return await this.callV0API(prompt, options);
@@ -65,10 +70,7 @@ export class V0Client {
       console.error('🔧 V0Client: Options:', options);
       
       const result = await this.v0Client.chats.create({
-        messages: [{
-          role: 'user',
-          content: prompt
-        }],
+        message: prompt.trim(),
         modelConfiguration: {
           modelId: options.modelId || 'v0-1.5-sm',
         },
@@ -144,12 +146,18 @@ export class V0Client {
 
   async continueConversation(chatId: string, message: string): Promise<V0Response> {
     try {
+      // Validate inputs
+      if (!chatId || typeof chatId !== 'string' || chatId.trim().length === 0) {
+        throw new Error('Chat ID is required and cannot be empty');
+      }
+      
+      if (!message || typeof message !== 'string' || message.trim().length === 0) {
+        throw new Error('Message is required and cannot be empty');
+      }
+      
       const result = await this.v0Client.chats.sendMessage({
-        chatId,
-        messages: [{
-          role: 'user',
-          content: message
-        }]
+        chatId: chatId.trim(),
+        message: message.trim()
       });
 
       const files = result.latestVersion?.files || [];
